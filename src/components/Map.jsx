@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   MapContainer,
   TileLayer,
@@ -9,17 +8,26 @@ import {
   Circle,
   useMapEvents,
   useMap
-} from 'react-leaflet'
-import L from 'leaflet'
-import 'leaflet/dist/leaflet.css'
-import NodeModal from './NodeModal'
+} from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import '../styles/index.css';
+import NodeModal from './NodeModal';
 import {
   useMarkerStorage,
   usePathStorage,
   exportMapData,
   importMapData
-} from './localStorageHooks'
-
+} from './localStorageHooks';
+import BottomControlPanel from './BottomControlPanel';
+import {
+  FormControl,
+  InputLabel,
+  MenuItem,
+  Select,
+  Box
+} from '@mui/material';
+import { right } from '@popperjs/core';
 // Custom Marker Icon
 const customMarkerIcon = L.divIcon({
   className: 'custom-marker-icon',
@@ -40,27 +48,23 @@ const customMarkerIcon = L.divIcon({
   `,
   iconSize: [30, 30],
   iconAnchor: [15, 15]
-})
+});
 
-
-
+// Deletion Modal Component
 const DeletionModal = ({ selectedItem, onDelete, onClose }) => {
-  // Helper function to render transport modes
   const renderTransportModes = (modes) => {
-    if (!modes || modes.length === 0) return 'ندارد'
+    if (!modes || modes.length === 0) return 'ندارد';
 
     return modes.map(mode => {
       switch (mode) {
-        case 'wheelchair': return 'ویلچر'
-        case 'electricVan': return 'ون برقی'
-        case 'bicycle': return 'دوچرخه'
-        case 'walking': return 'پیاده‌روی'
-        default: return mode
+        case 'wheelchair': return 'ویلچر';
+        case 'electricVan': return 'ون برقی';
+        case 'walking': return 'پیاده‌روی';
+        default: return mode;
       }
-    }).join(', ')
-  }
+    }).join(', ');
+  };
 
-  // Calculate path length for paths
   const calculatePathLength = (coordinates) => {
     if (!coordinates || coordinates.length < 2) return 0;
 
@@ -72,7 +76,7 @@ const DeletionModal = ({ selectedItem, onDelete, onClose }) => {
     }
 
     return (totalDistance / 1000).toFixed(2); // Convert to kilometers
-  }
+  };
 
   return (
     <div style={{
@@ -97,7 +101,6 @@ const DeletionModal = ({ selectedItem, onDelete, onClose }) => {
       }}>
         جزئیات {selectedItem.type === 'marker' ? 'نشانگر' : 'مسیر'}
       </h2>
-
       {/* Common Details */}
       <div style={{
         backgroundColor: '#f4f4f4',
@@ -203,34 +206,15 @@ const DeletionModal = ({ selectedItem, onDelete, onClose }) => {
     </div>
   )
 }
-// Action Panel Component (Preserved from original implementation)
-{/* Bottom Action Panel */}
-      // <div className="bottom-action-panel">
-      //   {/* Your existing action buttons with added classes */}
-      //   <button
-      //     onStartTracking={startTracking}
-      //     onStopTracking={stopTracking}
-      //     onClick={onStartTracking}
-      //     className="action-button start-tracking-btn"
-      //   >
-      //     شروع ردیابی
-      //   </button>
 
-      //   <button
-      //     onClick={onAddMarker}
-      //     className="action-button add-marker-btn"
-      //   >
-      //     افزودن نشانگر
-      //   </button>
-
-      //   {/* Other buttons */}
-      // </div>
+// Action Panel Component
 function ActionPanel({
   isTracking,
   onStartTracking,
   onStopTracking,
   onAddMarker,
-  pathCoordinates
+  pathCoordinates,
+  onShowFilter  // New prop for filter
 }) {
   const calculatePathLength = () => {
     if (pathCoordinates.length < 2) return 0;
@@ -278,6 +262,19 @@ function ActionPanel({
         <span>+</span> افزودن نشانگر
       </button>
 
+      <button
+        onClick={onShowFilter}
+        style={{
+          backgroundColor: 'purple',
+          color: 'white',
+          padding: '10px 20px',
+          border: 'none',
+          borderRadius: '5px'
+        }}
+      >
+        فیلتر
+      </button>
+
       {pathLength > 0 && (
         <div style={{
           backgroundColor: '#FFC107',
@@ -298,7 +295,7 @@ function ActionPanel({
   )
 }
 
-// Path Save Modal Component (Preserved from original implementation)
+// Path Save Modal Component
 function PathSaveModal({ onSave, onClose, pathCoordinates }) {
   const [pathName, setPathName] = useState('')
   const [pathDescription, setPathDescription] = useState('')
@@ -366,7 +363,6 @@ function PathSaveModal({ onSave, onClose, pathCoordinates }) {
         >
           <option value="">انتخاب نوع مسیر</option>
           <option value="hiking">پیاده‌روی</option>
-          <option value="cycling">دوچرخه‌سواری</option>
           <option value="driving">رانندگی</option>
           <option value="other">سایر</option>
         </select>
@@ -405,37 +401,122 @@ function PathSaveModal({ onSave, onClose, pathCoordinates }) {
 function MapClickHandler({ onMapClick }) {
   useMapEvents({
     click: (e) => {
-      onMapClick(e.latlng)
+      onMapClick(e.latlng);
     }
-  })
-  return null
+  });
+  return null;
 }
 
 // Recenter Map Component
 function RecenterMap({ position, zoom }) {
-  const map = useMap()
+  const map = useMap();
 
   useEffect(() => {
     if (position) {
-      map.setView(position, zoom)
+      map.setView(position, zoom);
     }
-  }, [position, zoom])
+  }, [position, zoom]);
 
-  return null
+  return null;
+}
+
+// Filter Modal Component
+function FilterModal({ isOpen, onClose, filterOptions, setFilterOptions }) {
+  if (!isOpen) return null;
+
+  const toggleOption = (category, option) => {
+    setFilterOptions(prev => {
+      const currentOptions = prev[category] || [];
+      const newOptions = currentOptions.includes(option)
+        ? currentOptions.filter(item => item !== option)
+        : [...currentOptions, option];
+
+      return { ...prev, [category]: newOptions };
+    });
+  };
+
+  return (
+    <div style={{
+      position: 'fixed',
+      top: '50%',
+      left: '50%',
+      transform: 'translate(-50%, -50%)',
+      backgroundColor: 'white',
+      padding: '20px',
+      borderRadius: '10px',
+      boxShadow: '0 4px 15px rgba(0,0,0,0.2)',
+      zIndex: 1000,
+      width: '90%',
+      maxWidth: '400px'
+    }}>
+      <h2>فیلترسازی</h2>
+
+      <div>
+        <h3>نوع نشانگر</h3>
+        {['checkpoint', 'landmark', 'poi', 'other'].map(type => (
+          <label key={type}>
+            <input
+              type="checkbox"
+              checked={filterOptions.markerTypes.includes(type)}
+              onChange={() => toggleOption('markerTypes', type)}
+            />
+            {type === 'checkpoint' && 'نقطه بازرسی'}
+            {type === 'landmark' && 'نشانه'}
+            {type === 'poi' && 'نقطه دلخواه'}
+            {type === 'other' && 'سایر'}
+          </label>
+        ))}
+      </div>
+
+      <div>
+        <h3>نوع مسیر</h3>
+        {['hiking', 'driving', 'other'].map(type => (
+          <label key={type}>
+            <input
+              type="checkbox"
+              checked={filterOptions.pathTypes.includes(type)}
+              onChange={() => toggleOption('pathTypes', type)}
+            />
+            {type === 'hiking' && 'پیاده‌روی'}
+            {type === 'driving' && 'رانندگی'}
+            {type === 'other' && 'سایر'}
+          </label>
+        ))}
+      </div>
+
+      <button onClick={onClose}>بستن</button>
+    </div>
+  );
 }
 
 const Map = () => {
-  // State management (Preserved from original implementation)
-  const [position, setPosition] = useState([36.2972, 59.6067])
-  const [zoom, setZoom] = useState(12)
-  const [userLocation, setUserLocation] = useState(null)
-  const [locationAccuracy, setLocationAccuracy] = useState(null)
-  const [pathCoordinates, setPathCoordinates] = useState([])
-  const [locationError, setLocationError] = useState(null)
-  const [selectedLocation, setSelectedLocation] = useState(null)
-  const [isTracking, setIsTracking] = useState(false)
-  const [showPathSaveModal, setShowPathSaveModal] = useState(false)
-  const [selectedItemForDeletion, setSelectedItemForDeletion] = useState(null)
+  // State management
+  const [position, setPosition] = useState([36.2972, 59.6067]);
+  const [zoom, setZoom] = useState(12);
+  const [userLocation, setUserLocation] = useState(null);
+  const [locationAccuracy, setLocationAccuracy] = useState(null);
+  const [pathCoordinates, setPathCoordinates] = useState([]);
+  const [locationError, setLocationError] = useState(null);
+  const [selectedLocation, setSelectedLocation] = useState(null);
+  const [isTracking, setIsTracking] = useState(false);
+  const [showPathSaveModal, setShowPathSaveModal] = useState(false);
+  const [selectedItemForDeletion, setSelectedItemForDeletion] = useState(null);
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [mapLayer, setMapLayer] = useState('street');
+
+
+  const [filterOptions, setFilterOptions] = useState({
+    markerTypes: [],
+    pathTypes: [],
+    transportModes: [],
+    gender: []
+  });
+
+  const layers = {
+    street: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    satellite: "https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2020_3857/default/g/{z}/{y}/{x}.jpg",
+  };
+
 
   // Storage Hooks
   const {
@@ -443,240 +524,309 @@ const Map = () => {
     addMarker,
     removeMarker,
     updateMarker
-  } = useMarkerStorage()
+  } = useMarkerStorage();
 
   const {
     paths,
     addPath,
     removePath,
     updatePath
-  } = usePathStorage()
+  } = usePathStorage();
 
   // Refs for tracking
-  const watchIdRef = useRef(null)
+  const watchIdRef = useRef(null);
 
-  // Comprehensive geolocation setup (Preserved from original implementation)
+  // Geolocation setup
   const setupGeolocation = useCallback(() => {
-    setLocationError(null)
+    setLocationError(null);
 
     if (!navigator.geolocation) {
-      setLocationError('موقعیت مکانی در دستگاه شما پشتیبانی نمی‌شود')
-      return
+      setLocationError('موقعیت مکانی در دستگاه شما پشتیبانی نمی‌شود');
+      return;
     }
 
     const options = {
       enableHighAccuracy: true,
-      timeout: 10000,
+      timeout: 30000,
       maximumAge: 0
-    }
+    };
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        const { latitude, longitude, accuracy } = position.coords
-        const newPosition = [latitude, longitude]
+        const { latitude, longitude, accuracy } = position.coords;
+        const newPosition = [latitude, longitude];
 
-        setUserLocation(newPosition)
-        setLocationAccuracy(accuracy)
-        setPosition(newPosition)
-        setZoom(15)
+        setUserLocation(newPosition);
+        setLocationAccuracy(accuracy);
+        setPosition(newPosition);
+        setZoom(15);
       },
       (error) => {
         switch (error.code) {
           case error.PERMISSION_DENIED:
-            setLocationError('دسترسی به موقعیت مکانی رد شد')
-            break
+            setLocationError('دسترسی به موقعیت مکانی رد شد');
+            break;
           case error.POSITION_UNAVAILABLE:
-            setLocationError('اطلاعات موقعیت در دسترس نیست')
-            break
+            setLocationError('اطلاعات موقعیت در دسترس نیست');
+            break;
           case error.TIMEOUT:
-            setLocationError('زمان درخواست موقعیت مکانی به پایان رسید')
-            break
+            setLocationError('زمان درخواست موقعیت مکانی به پایان رسید');
+            break;
           default:
-            setLocationError('خطا در دریافت موقعیت مکانی')
+            setLocationError('خطا در دریافت موقعیت مکانی');
         }
 
-        setPosition([36.2972, 59.6067])
-        setZoom(12)
+        setPosition([36.2972, 59.6067]);
+        setZoom(12);
       },
       options
-    )
-  }, [])
+    );
+  }, []);
 
-  // Start tracking method (Preserved from original implementation)
+  // Start tracking function
   const startTracking = () => {
-    setIsTracking(true)
-    setPathCoordinates([]) // Clear previous coordinates
-    setLocationError(null)
+    setIsTracking(true);
+    setPathCoordinates([]); // Clear previous coordinates
+    setLocationError(null);
 
     const trackingTimeout = setTimeout(() => {
       if (pathCoordinates.length === 0) {
-        stopTracking()
-        setLocationError('عدم موفقیت در دریافت موقعیت مکانی. لطفاً مجدداً تلاش کنید.')
+        stopTracking();
+        setLocationError('عدم موفقیت در دریافت موقعیت مکانی. لطفاً مجدداً تلاش کنید.');
       }
-    }, 30000)
+    }, 30000);
+
+    // const startTracking = () => {
+    //   // Start tracking location
+    //   navigator.geolocation.watchPosition((position) => {
+    //     const { latitude, longitude, accuracy } = position.coords;
+    //     setUserLocation([latitude, longitude]);
+    //     setLocationAccuracy(accuracy);
+    //     setPosition([latitude, longitude]);
+    //   }, (error) => {
+    //     console.error('Tracking error:', error);
+    //   }, { enableHighAccuracy: true });
+    // };
 
     watchIdRef.current = navigator.geolocation.watchPosition(
       (position) => {
-        const { latitude, longitude, accuracy } = position.coords
-        const newLocation = [latitude, longitude]
+        const { latitude, longitude, accuracy } = position.coords;
+        const newLocation = [latitude, longitude];
 
-        clearTimeout(trackingTimeout)
+        clearTimeout(trackingTimeout);
 
         if (accuracy <= 500) {
-          setUserLocation(newLocation)
-          setLocationError(null)
+          setUserLocation(newLocation);
+          setLocationError(null);
 
           // Ensure path coordinates are added with minimal duplicate prevention
           setPathCoordinates(prev => {
             // Always add first point
             if (prev.length === 0) {
-              return [newLocation]
+              return [newLocation];
             }
 
-            const lastCoord = prev[prev.length - 1]
+            const lastCoord = prev[prev.length - 1];
             // Add new point if it's significantly different from the last point
-            const minDistance = 0.00001 // Adjust this value as needed
+            const minDistance = 0.00001; // Adjust this value as needed
             const isNewPointFarEnough =
               Math.abs(lastCoord[0] - latitude) > minDistance ||
-              Math.abs(lastCoord[1] - longitude) > minDistance
+              Math.abs(lastCoord[1] - longitude) > minDistance;
 
             return isNewPointFarEnough
               ? [...prev, newLocation]
-              : prev
-          })
+              : prev;
+          });
         }
       },
       (error) => {
         console.error('Tracking error:', error);
-        clearTimeout(trackingTimeout)
+        clearTimeout(trackingTimeout);
 
-        let errorMessage = 'خطا در دریافت موقعیت'
+        let errorMessage = 'خطا در دریافت موقعیت';
         switch (error.code) {
           case error.PERMISSION_DENIED:
-            errorMessage = 'دسترسی به موقعیت مکانی رد شد'
-            break
+            errorMessage = 'دسترسی به موقعیت مکانی رد شد';
+            break;
           case error.POSITION_UNAVAILABLE:
-            errorMessage = 'اطلاعات موقعیت در دسترس نیست'
-            break
+            errorMessage = 'اطلاعات موقعیت در دسترس نیست';
+            break;
           case error.TIMEOUT:
-            errorMessage = 'زمان درخواست موقعیت مکانی به پایان رسید'
-            break
+            errorMessage = 'زمان درخواست موقعیت مکانی به پایان رسید';
+            break;
         }
 
-        setLocationError(errorMessage)
-        stopTracking()
+        setLocationError(errorMessage);
+        stopTracking();
       },
       {
         enableHighAccuracy: true,
-        timeout: 10000,
+        timeout: 30000,
         maximumAge: 0,
         distanceFilter: 1 // Minimum distance change to trigger an update
       }
-    )
-  }
+    );
+  };
 
-  // Stop tracking method (Preserved from original implementation)
+  // Stop tracking method
   const stopTracking = () => {
     if (watchIdRef.current) {
-      navigator.geolocation.clearWatch(watchIdRef.current)
-      setIsTracking(false)
+      navigator.geolocation.clearWatch(watchIdRef.current);
+      setIsTracking(false);
 
       // Ensure we have at least two points to create a path
       if (pathCoordinates.length > 1) {
-        setShowPathSaveModal(true)
+        setShowPathSaveModal(true);
       } else {
         // Clear coordinates if not enough points
-        setPathCoordinates([])
-        setLocationError('مسیر بسیار کوتاه است. لطفاً مسافت بیشتری را طی کنید.')
+        setPathCoordinates([]);
+        setLocationError('مسیر بسیار کوتاه است. لطفاً مسافت بیشتری را طی کنید.');
       }
     }
-  }
+  };
+
   const handleMarkerClick = (marker) => {
     setSelectedItemForDeletion({
       type: 'marker',
       item: marker
-    })
-  }
+    });
+  };
 
   const handlePathClick = (path) => {
     setSelectedItemForDeletion({
       type: 'path',
       item: path
-    })
-  }
+    });
+  };
+
   // Delete handler
   const handleDelete = () => {
     if (selectedItemForDeletion) {
-      const { type, item } = selectedItemForDeletion
+      const { type, item } = selectedItemForDeletion;
 
       if (type === 'marker') {
-        removeMarker(item.id)
+        removeMarker(item.id);
       } else if (type === 'path') {
-        removePath(item.id)
+        removePath(item.id);
       }
 
-      setSelectedItemForDeletion(null)
+      setSelectedItemForDeletion(null);
     }
-  }
-  // Save path method (Preserved from original implementation)
+  };
+
+  // Save path method
   const handleSavePath = (pathData) => {
-    addPath(pathData)
-    setShowPathSaveModal(false)
-    setPathCoordinates([])
-  }
+    addPath(pathData);
+    setShowPathSaveModal(false);
+    setPathCoordinates([]);
+  };
 
   // Initial geolocation setup
   useEffect(() => {
-    setupGeolocation()
-  }, [setupGeolocation])
+    setupGeolocation();
+  }, [setupGeolocation]);
 
   // Map Click Handler
   const handleMapClick = (latlng) => {
     setSelectedLocation({
       lat: latlng.lat,
       lng: latlng.lng
-    })
-  }
+    });
+  };
 
   // Node Modal Handler
   const handleSaveNode = (nodeData) => {
     addMarker({
       position: [nodeData.latitude, nodeData.longitude],
       data: nodeData
-    })
-    setSelectedLocation(null)
-  }
+    });
+    setSelectedLocation(null);
+  };
 
   // Export/Import Handlers
   const handleExportData = () => {
-    exportMapData()
-  }
+    exportMapData();
+  };
 
   const handleImportData = (event) => {
-    const file = event.target.files[0]
+    const file = event.target.files[0];
     if (file) {
       importMapData(file)
         .then(() => {
-          alert('اطلاعات با موفقیت وارد شد!')
+          alert('اطلاعات با موفقیت وارد شد!');
         })
         .catch(error => {
-          console.error('Import failed:', error)
-          alert('واردسازی اطلاعات ناموفق بود')
-        })
+          console.error('Import failed:', error);
+          alert('واردسازی اطلاعات ناموفق بود');
+        });
     }
-  }
+  };
+
+  // Filtering logic
+  const filteredMarkers = markers.filter(marker => {
+    const markerTypeMatch =
+      filterOptions.markerTypes.length === 0 ||
+      filterOptions.markerTypes.includes(marker.data?.type);
+
+    const transportModesMatch =
+      filterOptions.transportModes.length === 0 ||
+      (marker.data?.transportModes && marker.data.transportModes.some(mode =>
+        filterOptions.transportModes.includes(mode)
+      ));
+
+    const genderMatch =
+      filterOptions.gender.length === 0 ||
+      filterOptions.gender.includes(marker.data?.gender);
+
+    return markerTypeMatch && transportModesMatch && genderMatch;
+  });
+
+  const filteredPaths = paths.filter(path =>
+    filterOptions.pathTypes.length === 0 ||
+    filterOptions.pathTypes.includes(path.type)
+  );
+
+  // Path color helper function
+  const getPathColor = (pathType) => {
+    switch (pathType) {
+      case 'hiking': return '#4CAF50'; // Green
+      case 'cycling': return '#2196F3'; // Blue
+      case 'driving': return '#FF9800'; // Orange
+      default: return '#9C27B0'; // Purple
+    }
+  };
 
   return (
-    <div style={{
-      width: '100vw',      // Full viewport width
-      height: '100vh',     // Full viewport height
-      margin: 0,           // Remove default margins
-      padding: 0,          // Remove default padding
-      position: 'absolute', // Position absolutely
-      top: 0,              // Align to top
-      left: 0,             // Align to left
-      overflow: 'hidden'   // Prevent any scrollbars
-    }}>
+    <div className="map-container">
+      <Box
+        sx={{
+          position: 'absolute',
+          top: '10px',
+          right: '10px',
+          backgroundColor: '#ffffffee',
+          padding: '10px',
+          borderRadius: '8px',
+          zIndex: 1200,
+          boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+          direction: 'rtl',
+          minWidth:'180px'
+        }}
+      >
+        <FormControl fullWidth variant="outlined" size="small">
+          <InputLabel id="map-layer-label" style={{right:'0px',fontWeight: 'bold'}}>نقشه پایه</InputLabel>
+          <Select
+            labelId="map-layer-label"
+            id="map-layer-select"
+            value={mapLayer}
+            label="نقشه پایه"
+            onChange={(e) => setMapLayer(e.target.value)}
+          >
+            <MenuItem value="street">Street View</MenuItem>
+            <MenuItem value="satellite">Satellite View</MenuItem>
+          </Select>
+        </FormControl>
+      </Box>
+
       {/* Path Save Modal */}
       {showPathSaveModal && (
         <PathSaveModal
@@ -695,46 +845,15 @@ const Map = () => {
         />
       )}
 
-      {/* Export/Import Controls */}
-      <div style={{
-        position: 'absolute',
-        top: '10px',
-        right: '10px',
-        zIndex: 1000,
-        display: 'flex',
-        gap: '10px'
-      }}>
-        <button
-          onClick={handleExportData}
-          style={{
-            backgroundColor: '#4CAF50',
-            color: 'white',
-            border: 'none',
-            padding: '10px',
-            borderRadius: '5px',
-            cursor: 'pointer'
-          }}
-        >
-          خروجی
-        </button>
-        <label
-          style={{
-            backgroundColor: '#2196F3',
-            color: 'white',
-            padding: '10px',
-            borderRadius: '5px',
-            cursor: 'pointer'
-          }}
-        >
-          ورودی
-          <input
-            type="file"
-            accept=".json"
-            onChange={handleImportData}
-            style={{ display: 'none' }}
-          />
-        </label>
-      </div>
+      {/* Filter Modal */}
+      {showFilterModal && (
+        <FilterModal
+          isOpen={showFilterModal}
+          onClose={() => setShowFilterModal(false)}
+          filterOptions={filterOptions}
+          setFilterOptions={setFilterOptions}
+        />
+      )}
 
       {/* Deletion Confirmation Modal */}
       {selectedItemForDeletion && (
@@ -754,7 +873,7 @@ const Map = () => {
           height: '100%',    // 100% of parent container
           position: 'absolute',
           margin: 0,         // No margins
-          padding: 0,         // No padding
+          padding: 0,        // No padding
           direction: 'rtl'
         }}
       >
@@ -765,8 +884,8 @@ const Map = () => {
         <MapClickHandler onMapClick={handleMapClick} />
 
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">نقشه‌برداری باز</a>'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          url={layers[mapLayer]}
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         />
 
         {/* User Location Marker with Accuracy Circle */}
@@ -791,7 +910,7 @@ const Map = () => {
           </>
         )}
 
-        {/* Path Tracing - Ensure it renders during and after tracking */}
+        {/* Path Tracing */}
         {pathCoordinates.length > 1 && (
           <Polyline
             positions={pathCoordinates}
@@ -802,20 +921,8 @@ const Map = () => {
           />
         )}
 
-        {/* Path Save Modal */}
-        {showPathSaveModal && (
-          <PathSaveModal
-            onSave={handleSavePath}
-            onClose={() => {
-              setShowPathSaveModal(false)
-              setPathCoordinates([]) // Clear coordinates if modal is closed
-            }}
-            pathCoordinates={pathCoordinates}
-          />
-        )}
-
         {/* Dynamic Markers */}
-        {markers.map((marker) => (
+        {filteredMarkers.map((marker) => (
           <Marker
             key={marker.id}
             position={marker.position}
@@ -824,45 +931,64 @@ const Map = () => {
               click: () => handleMarkerClick(marker)
             }}
           >
-            {/* Existing Popup content */}
+            {/* Popup can contain more information if desired */}
           </Marker>
         ))}
 
-        {/* Add path markers for deletion */}
-        {paths.map((path) => (
-          <Marker
-            key={path.id}
-            position={path.coordinates[0]}
-            icon={customMarkerIcon}
-            eventHandlers={{
-              click: () => handlePathClick(path)
-            }}
-          >
-            <Popup>
-              <div>
-                <strong>{path.name}</strong>
-                <p>{path.description}</p>
-                <p>نوع مسیر: {path.type}</p>
-              </div>
-            </Popup>
-          </Marker>
-        ))}
+        {/* Path markers */}
+        {filteredPaths.map((path) => {
+          if (!path.coordinates || !Array.isArray(path.coordinates) || path.coordinates.length === 0) {
+            console.warn('Path has invalid coordinates:', path);
+            return null; // Skip this path
+          }
+          return (
+            <React.Fragment key={path.id}>
+              <Polyline
+                positions={path.coordinates}
+                color={getPathColor(path.type)}
+                weight={5}
+                opacity={0.7}
+              />
+              <Marker
+                position={path.coordinates[0]}
+                icon={customMarkerIcon}
+                eventHandlers={{
+                  click: () => handlePathClick(path)
+                }}
+              >
+                <Popup>
+                  <div>
+                    <strong>{path.name}</strong>
+                    <p>{path.description}</p>
+                    <p>نوع مسیر: {path.type}</p>
+                  </div>
+                </Popup>
+              </Marker>
+            </React.Fragment>
+          );
+        })}
       </MapContainer>
-
-      {/* Action Panel */}
-      <ActionPanel
+      <BottomControlPanel
         isTracking={isTracking}
         onStartTracking={startTracking}
         onStopTracking={stopTracking}
-        onAddMarker={() => setSelectedLocation({
-          lat: position[0],
-          lng: position[1]
-        })}
-        pathCoordinates={pathCoordinates}
+        onAddMarker={() => setSelectedLocation({ lat: position[0], lng: position[1] })}
+        // onExport={handleExportData}
+        onImportClick={() => document.getElementById('importInput').click()}
+        onFilter={() => setShowFilterModal(true)}
       />
-      
+
+      <input
+        id="importInput"
+        type="file"
+        accept=".json"
+        onChange={handleImportData}
+        style={{ display: 'none' }}
+      />
+
+
     </div>
   )
 }
 
-export default Map
+export default Map;

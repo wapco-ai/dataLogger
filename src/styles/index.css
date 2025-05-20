@@ -4,104 +4,356 @@
 
 /* src/index.css */
 * {
-  font-family: 'Vazirmatn', Arial, sans-serif;
-  direction: rtl;
+    font-family: 'Vazirmatn', Arial, sans-serif;
+    direction: rtl;
 }
 
-html, body {
-  font-size: 16px;
-  line-height: 1.6;
-  text-align: right;
-  -webkit-locale: 'fa';
-  /* locale: 'fa'; */
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  overflow: hidden;
+html,
+body {
+    font-size: 16px;
+    line-height: 1.6;
+    text-align: right;
+    -webkit-locale: 'fa';
+    /* locale: 'fa'; */
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow: hidden;
 }
 
 :root {
-  --primary-blue: #2196F3;
-  --primary-green: #4CAF50;
-  --secondary-gray: #6c757d;
-  --text-color: #333;
+    --primary-blue: #2196F3;
+    --primary-green: #4CAF50;
+    --secondary-gray: #6c757d;
+    --text-color: #333;
 }
 
 * {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-  direction: rtl;
-  font-family: 'Iran Sans', 'Vazir', Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    direction: rtl;
+    font-family: 'Iran Sans', 'Vazir', Arial, sans-serif;
 }
 
 
 /* Mobile-specific adjustments */
 @media (max-width: 768px) {
-  body {
-    font-size: 14px;
-  }
+    body {
+        font-size: 14px;
+    }
 }
 
 /* Leaflet Map Specific Styles */
 .leaflet-container {
-  width: 100%;
-  height: 100%;
-  position: absolute;
-  top: 0;
-  left: 0;
-  z-index: 1;
+    width: '100%';
+    height: '100%';
+    position: 'absolute';
+    margin: 0;
+    padding: 0;
+    direction: 'rtl';
 }
 
 /* Action Buttons */
 .action-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 10px 15px;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: bold;
-  transition: background-color 0.3s ease;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 10px 15px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: bold;
+    transition: background-color 0.3s ease;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }
 
 .start-tracking-btn {
-  background-color: var(--primary-green);
-  color: white;
+    background-color: var(--primary-green);
+    color: white;
 }
 
 .stop-tracking-btn {
-  background-color: #F44336;
-  color: white;
+    background-color: #F44336;
+    color: white;
 }
 
 .add-marker-btn {
-  background-color: var(--primary-blue);
-  color: white;
+    background-color: var(--primary-blue);
+    color: white;
 }
 
 /* Bottom Action Panel */
 .bottom-action-panel {
-  position: absolute;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 15px;
-  background-color: white;
-  border-radius: 30px;
-  padding: 10px;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-  z-index: 1000;
-  max-width: 95%;
-  width: auto;
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    background-color: white;
+    border-radius: 30px;
+    padding: 10px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+    max-width: 95%;
+    width: auto;
 }
 
 /* Modal Styles */
+.modal-container {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    max-width: 400px;
+    background-color: white;
+    border-radius: 15px;
+    padding: 20px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    z-index: 2000;
+}
+
+/* Responsive Typography */
+@media (max-width: 480px) {
+    .action-button {
+        font-size: 12px;
+        padding: 8px 12px;
+    }
+
+    .bottom-action-panel {
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+}
+
+
+/*  */
+
+
+/* Leaflet RTL Adjustments */
+.leaflet-control {
+    direction: ltr;
+}
+
+#root {
+    height: 100%;
+    width: 100%;
+}
+
+.app-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+header {
+    background-color: #333;
+    color: white;
+    text-align: center;
+    padding: 1rem;
+}
+
+main {
+    display: flex;
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.map-section,
+.sidebar {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+}
+
+.map-section {
+    flex-grow: 2;
+}
+
+.sidebar {
+    flex-grow: 1;
+}
+
+
+/* Global Reset */
+html,
+body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow: hidden;
+}
+
+/* Map Container Styles */
+.map-container {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 100%;
+    height: 100%;
+    direction: rtl;
+}
+
+/* Export/Import Button Container */
+.export-import-controls {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 1000;
+    display: flex;
+    gap: 10px;
+}
+
+.export-import-controls button,
+.export-import-controls label {
+    background-color: white;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 8px 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.export-import-controls button:hover,
+.export-import-controls label:hover {
+    background-color: #f0f0f0;
+}
+
+
+.error-message {
+    color: red;
+    margin-bottom: 10px;
+}
+
+.modal-container {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    max-width: 400px;
+    background-color: white;
+    border-radius: 15px;
+    padding: 20px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    z-index: 2000;
+}
+
+.input-group {
+    margin-bottom: 10px;
+}
+
+.checkbox-group,
+.radio-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.button-group {
+    display: flex;
+    justify-content: space-between;
+}
+
+.save-button {
+    background-color: green;
+    color: white;
+    border: none;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+.cancel-button {
+    background-color: red;
+    color: white;
+    border: none;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+.map-container {
+    width: '100vw';
+    height: '100vh';
+    margin: 0;
+    padding: 0;
+    position: 'absolute';
+    top: 0;
+    left: 0;
+    overflow: 'hidden';
+}
+
+.layer-selector {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: white;
+  padding: 10px;
+  border-radius: 5px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+}
+
+.layer-select {
+  margin-top: 5px;
+  padding: 5px;
+}
+
+.layer-selector {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: rgba(255, 255, 255, 0.8);
+  padding: 10px;
+  border-radius: 5px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+}
+
+.layer-select {
+  margin-top: 5px;
+  padding: 5px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+}
+
+.button-group {
+  display: flex;
+  justify-content: space-between;
+}
+
+.save-button, .cancel-button {
+  padding: 10px 15px;
+  border: none;
+  cursor: pointer;
+  border-radius: 5px;
+  transition: background-color 0.3s;
+}
+
+.save-button {
+  background-color: green;
+  color: white;
+}
+
+.save-button:hover {
+  background-color: darkgreen;
+}
+
+.cancel-button {
+  background-color: red;
+  color: white;
+}
+
+.cancel-button:hover {
+  background-color: darkred;
+}
+
 .modal-container {
   position: fixed;
   top: 50%;
@@ -112,116 +364,24 @@ html, body {
   background-color: white;
   border-radius: 15px;
   padding: 20px;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
   z-index: 2000;
 }
 
-/* Responsive Typography */
-@media (max-width: 480px) {
-  .action-button {
-    font-size: 12px;
-    padding: 8px 12px;
-  }
-
-  .bottom-action-panel {
-    flex-wrap: wrap;
-    gap: 10px;
-  }
+.error-message {
+  color: red;
+  margin-bottom: 10px;
 }
 
-
-/*  */
-
-
-/* Leaflet RTL Adjustments */
-.leaflet-control {
-  direction: ltr;
+.input-group {
+  margin-bottom: 15px;
 }
 
-#root {
-  height: 100%;
-  width: 100%;
+.checkbox-group, .radio-group {
+  display: flex;
+  flex-direction: column;
 }
 
-.app-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 20px;
-}
-
-header {
-  background-color: #333;
-  color: white;
+h2 {
   text-align: center;
-  padding: 1rem;
 }
-
-main {
-  display: flex;
-  gap: 20px;
-  margin-top: 20px;
-}
-
-.map-section, .sidebar {
-  background-color: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-  padding: 20px;
-}
-
-.map-section {
-  flex-grow: 2;
-}
-
-.sidebar {
-  flex-grow: 1;
-}
-
-
-/* Global Reset */
-html, body {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  overflow: hidden;
-}
-
-/* Map Container Styles */
-.map-container {
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 100%;
-  height: 100%;
-  direction: rtl;
-}
-
-/* Export/Import Button Container */
-.export-import-controls {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  z-index: 1000;
-  display: flex;
-  gap: 10px;
-}
-
-.export-import-controls button,
-.export-import-controls label {
-  background-color: white;
-  border: 1px solid #ddd;
-  border-radius: 5px;
-  padding: 8px 15px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-}
-
-.export-import-controls button:hover,
-.export-import-controls label:hover {
-  background-color: #f0f0f0;
-}
-
-
