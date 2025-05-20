@@ -1,21 +1,18 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fa" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Data Collection App</title>
-    <link rel="stylesheet" href="css/style.css">
-    <link rel="manifest" href="manifest.json">
-    <script src="vendor/jquery/jquery.min.js"></script>
-    <script src="vendor/leaflet/leaflet.js"></script>
-    <script src="vendor/localforage.min.js"></script>
-    <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ردیاب داده</title>
+    
+    <!-- RTL and Persian language meta tags -->
+    <meta name="description" content="برنامه ردیابی موقعیت مکانی" />
+    <meta name="keywords" content="نقشه, مسیریابی, موقعیت مکانی" />
+    <meta name="language" content="fa" />
 </head>
 <body>
-    <div id="map" style="height: 100vh;"></div>
-    
-    <script src="js/storage.js"></script>
-    <script src="js/sensors.js"></script>
-    <script src="js/app.js"></script>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
 </body>
-</html> 
+</html>

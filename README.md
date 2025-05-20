@@ -1,2 +1,1 @@
-# dataLogger
-نرم افزاری برای جمع آوری داده و تست سنسورهای موبایل
+"# dataLogger Project" 
