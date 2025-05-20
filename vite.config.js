@@ -5,6 +5,8 @@ import { VitePWA } from 'vite-plugin-pwa'
 import path from 'path'
 
 export default defineConfig({
+  base: '/dataLogger/',
+  publicDir: 'public',
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -24,6 +26,9 @@ export default defineConfig({
         short_name: 'DataLogger',
         description: 'Geographic Data Recording App',
         theme_color: '#ffffff',
+		display: 'standalone',
+		scope: '/dataLogger/',  
+        start_url: '/dataLogger/',
         icons: [
           {
             src: 'icon-192x192.png',
