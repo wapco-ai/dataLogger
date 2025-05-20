@@ -533,7 +533,7 @@ const Map = () => {
   // Start tracking method (Preserved from original implementation)
   const startTracking = () => {
     setIsTracking(true)
-    setPathCoordinates([])
+    setPathCoordinates([]) // Clear previous coordinates
     setLocationError(null)
 
     const trackingTimeout = setTimeout(() => {
@@ -554,14 +554,23 @@ const Map = () => {
           setUserLocation(newLocation)
           setLocationError(null)
 
+          // Ensure path coordinates are added with minimal duplicate prevention
           setPathCoordinates(prev => {
-            const lastCoord = prev[prev.length - 1]
-            if (!lastCoord ||
-              (Math.abs(lastCoord[0] - latitude) > 0.0001 ||
-                Math.abs(lastCoord[1] - longitude) > 0.0001)) {
-              return [...prev, newLocation]
+            // Always add first point
+            if (prev.length === 0) {
+              return [newLocation]
             }
-            return prev
+
+            const lastCoord = prev[prev.length - 1]
+            // Add new point if it's significantly different from the last point
+            const minDistance = 0.0001 // Adjust this value as needed
+            const isNewPointFarEnough =
+              Math.abs(lastCoord[0] - latitude) > minDistance ||
+              Math.abs(lastCoord[1] - longitude) > minDistance
+
+            return isNewPointFarEnough
+              ? [...prev, newLocation]
+              : prev
           })
         }
       },
@@ -583,12 +592,13 @@ const Map = () => {
         }
 
         setLocationError(errorMessage)
+        stopTracking()
       },
       {
         enableHighAccuracy: true,
         timeout: 10000,
         maximumAge: 0,
-        distanceFilter: 1
+        distanceFilter: 1 // Minimum distance change to trigger an update
       }
     )
   }
@@ -599,8 +609,13 @@ const Map = () => {
       navigator.geolocation.clearWatch(watchIdRef.current)
       setIsTracking(false)
 
+      // Ensure we have at least two points to create a path
       if (pathCoordinates.length > 1) {
         setShowPathSaveModal(true)
+      } else {
+        // Clear coordinates if not enough points
+        setPathCoordinates([])
+        setLocationError('مسیر بسیار کوتاه است. لطفاً مسافت بیشتری را طی کنید.')
       }
     }
   }
@@ -803,13 +818,26 @@ const Map = () => {
           </>
         )}
 
-        {/* Path Tracing */}
+        {/* Path Tracing - Ensure it renders during and after tracking */}
         {pathCoordinates.length > 1 && (
           <Polyline
             positions={pathCoordinates}
             color="blue"
             weight={5}
-            opacity={0.7}
+            opacity={isTracking ? 0.7 : 1}
+            dashArray={isTracking ? "10, 10" : null} // Dashed line while tracking
+          />
+        )}
+
+        {/* Path Save Modal */}
+        {showPathSaveModal && (
+          <PathSaveModal
+            onSave={handleSavePath}
+            onClose={() => {
+              setShowPathSaveModal(false)
+              setPathCoordinates([]) // Clear coordinates if modal is closed
+            }}
+            pathCoordinates={pathCoordinates}
           />
         )}
 
