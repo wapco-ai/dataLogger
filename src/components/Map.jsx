@@ -204,6 +204,27 @@ const DeletionModal = ({ selectedItem, onDelete, onClose }) => {
   )
 }
 // Action Panel Component (Preserved from original implementation)
+{/* Bottom Action Panel */}
+      // <div className="bottom-action-panel">
+      //   {/* Your existing action buttons with added classes */}
+      //   <button
+      //     onStartTracking={startTracking}
+      //     onStopTracking={stopTracking}
+      //     onClick={onStartTracking}
+      //     className="action-button start-tracking-btn"
+      //   >
+      //     شروع ردیابی
+      //   </button>
+
+      //   <button
+      //     onClick={onAddMarker}
+      //     className="action-button add-marker-btn"
+      //   >
+      //     افزودن نشانگر
+      //   </button>
+
+      //   {/* Other buttons */}
+      // </div>
 function ActionPanel({
   isTracking,
   onStartTracking,
@@ -227,36 +248,11 @@ function ActionPanel({
   const pathLength = calculatePathLength();
 
   return (
-    <div style={{
-      position: 'absolute',
-      bottom: '20px',
-      left: '50%',
-      transform: 'translateX(-50%)',
-      backgroundColor: 'white',
-      borderRadius: '20px',
-      boxShadow: '0 4px 15px rgba(0,0,0,0.2)',
-      display: 'flex',
-      alignItems: 'center',
-      padding: '10px',
-      zIndex: 1000,
-      gap: '15px'
-    }}>
+    <div className="bottom-action-panel">
       {!isTracking ? (
         <button
           onClick={onStartTracking}
-          style={{
-            backgroundColor: '#4CAF50',
-            color: 'white',
-            border: 'none',
-            borderRadius: '15px',
-            padding: '10px 20px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            fontSize: '14px',
-            fontWeight: 'bold',
-            transition: 'background-color 0.3s ease'
-          }}
+          className="action-button start-tracking-btn"
           onMouseOver={(e) => e.target.style.backgroundColor = '#45a049'}
           onMouseOut={(e) => e.target.style.backgroundColor = '#4CAF50'}
         >
@@ -265,19 +261,7 @@ function ActionPanel({
       ) : (
         <button
           onClick={onStopTracking}
-          style={{
-            backgroundColor: '#F44336',
-            color: 'white',
-            border: 'none',
-            borderRadius: '15px',
-            padding: '10px 20px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            fontSize: '14px',
-            fontWeight: 'bold',
-            transition: 'background-color 0.3s ease'
-          }}
+          className="action-button stop-tracking-btn"
           onMouseOver={(e) => e.target.style.backgroundColor = '#e53935'}
           onMouseOut={(e) => e.target.style.backgroundColor = '#F44336'}
         >
@@ -287,19 +271,7 @@ function ActionPanel({
 
       <button
         onClick={onAddMarker}
-        style={{
-          backgroundColor: '#2196F3',
-          color: 'white',
-          border: 'none',
-          borderRadius: '15px',
-          padding: '10px 20px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px',
-          fontSize: '14px',
-          fontWeight: 'bold',
-          transition: 'background-color 0.3s ease'
-        }}
+        className="action-button add-marker-btn"
         onMouseOver={(e) => e.target.style.backgroundColor = '#1976D2'}
         onMouseOut={(e) => e.target.style.backgroundColor = '#2196F3'}
       >
@@ -563,7 +535,7 @@ const Map = () => {
 
             const lastCoord = prev[prev.length - 1]
             // Add new point if it's significantly different from the last point
-            const minDistance = 0.0001 // Adjust this value as needed
+            const minDistance = 0.00001 // Adjust this value as needed
             const isNewPointFarEnough =
               Math.abs(lastCoord[0] - latitude) > minDistance ||
               Math.abs(lastCoord[1] - longitude) > minDistance
@@ -780,6 +752,7 @@ const Map = () => {
         style={{
           width: '100%',     // 100% of parent container
           height: '100%',    // 100% of parent container
+          position: 'absolute',
           margin: 0,         // No margins
           padding: 0,         // No padding
           direction: 'rtl'
@@ -825,7 +798,7 @@ const Map = () => {
             color="blue"
             weight={5}
             opacity={isTracking ? 0.7 : 1}
-            dashArray={isTracking ? "10, 10" : null} // Dashed line while tracking
+            dashArray={isTracking ? "1, 1" : null} // Dashed line while tracking
           />
         )}
 
@@ -887,6 +860,7 @@ const Map = () => {
         })}
         pathCoordinates={pathCoordinates}
       />
+      
     </div>
   )
 }
