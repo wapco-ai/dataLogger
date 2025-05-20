@@ -291,7 +291,7 @@ function ActionPanel({
           gap: '10px'
         }}>
           <span>مسافت:</span>
-          <span>{(pathLength / 1000).toFixed(2)} کیلومتر</span>
+          <span>{pathLength} متر</span>
         </div>
       )}
     </div>

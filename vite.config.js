@@ -17,8 +17,8 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: [
-        'favicon.ico', 
-        'icon-192x192.png', 
+        'favicon.ico',
+        'icon-192x192.png',
         'icon-512x512.png'
       ],
       manifest: {
@@ -26,9 +26,10 @@ export default defineConfig({
         short_name: 'DataLogger',
         description: 'Geographic Data Recording App',
         theme_color: '#ffffff',
-		display: 'standalone',
-		scope: '/dataLogger/',  
+        display: 'fullscreen',
+        scope: '/dataLogger/',
         start_url: '/dataLogger/',
+        orientation: "any",
         icons: [
           {
             src: '/icons/icon-192x192.png',
