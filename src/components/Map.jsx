@@ -616,6 +616,7 @@ const Map = () => {
 
     watchIdRef.current = navigator.geolocation.watchPosition(
       (position) => {
+        console.log('GPS update:', position.coords.latitude, position.coords.longitude, 'accuracy:', position.coords.accuracy);
         const { latitude, longitude, accuracy } = position.coords;
         const newLocation = [latitude, longitude];
 
@@ -629,7 +630,7 @@ const Map = () => {
               return [newLocation];
             }
             const lastCoord = prev[prev.length - 1];
-            const minDistance = 0.00001;
+            const minDistance = 0.000001;
             const isNewPointFarEnough =
               Math.abs(lastCoord[0] - latitude) > minDistance ||
               Math.abs(lastCoord[1] - longitude) > minDistance;
@@ -908,13 +909,13 @@ const Map = () => {
         )}
 
         {/* Path Tracing */}
-        {pathCoordinates.length > 1 && (
+        {pathCoordinates.length > 0 && (
           <Polyline
             positions={pathCoordinates}
             color="blue"
             weight={5}
             opacity={isTracking ? 0.7 : 1}
-            dashArray={isTracking ? "1, 1" : null} // Dashed line while tracking
+            // dashArray={isTracking ? "1, 1" : null} // Dashed line while tracking
           />
         )}
 
