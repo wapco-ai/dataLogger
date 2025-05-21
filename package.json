@@ -9,7 +9,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "workbox": "workbox generateSW workbox-config.js",
-    "deploy": "gh-pages -d dist",
+    "deploy": "gh-pages -d dist --repo https://github.com/wapco-ai/dataLogger.git",
     "generate-pwa-assets": "pwa-assets-generator"
   },
   "dependencies": {
