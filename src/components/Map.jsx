@@ -503,7 +503,9 @@ const Map = () => {
   const [selectedItemForDeletion, setSelectedItemForDeletion] = useState(null);
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [mapLayer, setMapLayer] = useState('street');
-
+  const handleExport = (format = 'json') => {
+    exportMapData(format); // Make sure this uses the enhanced export function we created earlier
+  };
 
   const [filterOptions, setFilterOptions] = useState({
     markerTypes: [],
@@ -809,11 +811,11 @@ const Map = () => {
           zIndex: 1200,
           boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
           direction: 'rtl',
-          minWidth:'180px'
+          minWidth: '180px'
         }}
       >
         <FormControl fullWidth variant="outlined" size="small">
-          <InputLabel id="map-layer-label" style={{right:'0px',fontWeight: 'bold'}}>نقشه پایه</InputLabel>
+          <InputLabel id="map-layer-label" style={{ right: '0px', fontWeight: 'bold' }}>نقشه پایه</InputLabel>
           <Select
             labelId="map-layer-label"
             id="map-layer-select"
@@ -968,13 +970,14 @@ const Map = () => {
           );
         })}
       </MapContainer>
+
       <BottomControlPanel
         isTracking={isTracking}
         onStartTracking={startTracking}
         onStopTracking={stopTracking}
         onAddMarker={() => setSelectedLocation({ lat: position[0], lng: position[1] })}
-        // onExport={handleExportData}
-        onImportClick={() => document.getElementById('importInput').click()}
+        onExport={handleExport} // Add this line
+        // onImportClick={() => document.getElementById('importInput').click()}
         onFilter={() => setShowFilterModal(true)}
       />
 
