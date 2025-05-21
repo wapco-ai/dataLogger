@@ -503,6 +503,8 @@ const Map = () => {
   const [selectedItemForDeletion, setSelectedItemForDeletion] = useState(null);
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [mapLayer, setMapLayer] = useState('street');
+  const trackingTimeoutRef = useRef(null);
+
   const handleExport = (format = 'json') => {
     exportMapData(format); // Make sure this uses the enhanced export function we created earlier
   };
@@ -585,65 +587,60 @@ const Map = () => {
     );
   }, []);
 
+  const pathCoordinatesRef = useRef(pathCoordinates);
+
+  useEffect(() => {
+    pathCoordinatesRef.current = pathCoordinates;
+  }, [pathCoordinates]);
   // Start tracking function
   const startTracking = () => {
     setIsTracking(true);
     setPathCoordinates([]); // Clear previous coordinates
     setLocationError(null);
+    // Clear any existing timeout to avoid stacking
+    if (trackingTimeoutRef.current) {
+      clearTimeout(trackingTimeoutRef.current);
+    }
 
-    const trackingTimeout = setTimeout(() => {
-      if (pathCoordinates.length === 0) {
-        stopTracking();
-        setLocationError('عدم موفقیت در دریافت موقعیت مکانی. لطفاً مجدداً تلاش کنید.');
-      }
+    // Use a ref + functional update to avoid stale closure for pathCoordinates length check
+    trackingTimeoutRef.current = setTimeout(() => {
+      setPathCoordinates((currentPathCoords) => {
+        if (currentPathCoords.length === 0) {
+          stopTracking();
+          setLocationError('عدم موفقیت در دریافت موقعیت مکانی. لطفاً مجدداً تلاش کنید.');
+        }
+        return currentPathCoords;
+      });
     }, 30000);
 
-    // const startTracking = () => {
-    //   // Start tracking location
-    //   navigator.geolocation.watchPosition((position) => {
-    //     const { latitude, longitude, accuracy } = position.coords;
-    //     setUserLocation([latitude, longitude]);
-    //     setLocationAccuracy(accuracy);
-    //     setPosition([latitude, longitude]);
-    //   }, (error) => {
-    //     console.error('Tracking error:', error);
-    //   }, { enableHighAccuracy: true });
-    // };
 
     watchIdRef.current = navigator.geolocation.watchPosition(
       (position) => {
         const { latitude, longitude, accuracy } = position.coords;
         const newLocation = [latitude, longitude];
 
-        clearTimeout(trackingTimeout);
+        clearTimeout(trackingTimeoutRef.current);
 
         if (accuracy <= 500) {
           setUserLocation(newLocation);
           setLocationError(null);
-
-          // Ensure path coordinates are added with minimal duplicate prevention
           setPathCoordinates(prev => {
-            // Always add first point
             if (prev.length === 0) {
               return [newLocation];
             }
-
             const lastCoord = prev[prev.length - 1];
-            // Add new point if it's significantly different from the last point
-            const minDistance = 0.00001; // Adjust this value as needed
+            const minDistance = 0.00001;
             const isNewPointFarEnough =
               Math.abs(lastCoord[0] - latitude) > minDistance ||
               Math.abs(lastCoord[1] - longitude) > minDistance;
 
-            return isNewPointFarEnough
-              ? [...prev, newLocation]
-              : prev;
+            return isNewPointFarEnough ? [...prev, newLocation] : prev;
           });
         }
       },
       (error) => {
         console.error('Tracking error:', error);
-        clearTimeout(trackingTimeout);
+        clearTimeout(trackingTimeoutRef.current);
 
         let errorMessage = 'خطا در دریافت موقعیت';
         switch (error.code) {
@@ -657,7 +654,6 @@ const Map = () => {
             errorMessage = 'زمان درخواست موقعیت مکانی به پایان رسید';
             break;
         }
-
         setLocationError(errorMessage);
         stopTracking();
       },
@@ -665,7 +661,7 @@ const Map = () => {
         enableHighAccuracy: true,
         timeout: 30000,
         maximumAge: 0,
-        distanceFilter: 1 // Minimum distance change to trigger an update
+        distanceFilter: 1
       }
     );
   };
@@ -674,16 +670,15 @@ const Map = () => {
   const stopTracking = () => {
     if (watchIdRef.current) {
       navigator.geolocation.clearWatch(watchIdRef.current);
-      setIsTracking(false);
+      watchIdRef.current = null;
+    }
+    setIsTracking(false);
 
-      // Ensure we have at least two points to create a path
-      if (pathCoordinates.length > 1) {
-        setShowPathSaveModal(true);
-      } else {
-        // Clear coordinates if not enough points
-        setPathCoordinates([]);
-        setLocationError('مسیر بسیار کوتاه است. لطفاً مسافت بیشتری را طی کنید.');
-      }
+    if (pathCoordinates.length > 1) {
+      setShowPathSaveModal(true);
+    } else {
+      setPathCoordinates([]);
+      setLocationError('مسیر بسیار کوتاه است. لطفاً مسافت بیشتری را طی کنید.');
     }
   };
 
