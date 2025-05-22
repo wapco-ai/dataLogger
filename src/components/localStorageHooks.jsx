@@ -69,15 +69,16 @@ const usePathStorage = () => {
   }, [paths]);
 
   const addPath = (newPath) => {
-    setPaths(prevPaths => {
-      const updatedPaths = [...prevPaths, {
-        ...newPath,
-        id: Date.now(),
-        timestamp: new Date().toISOString()
-      }];
-      return updatedPaths;
-    });
-  };
+  setPaths(prevPaths => {
+    const updatedPaths = [...prevPaths, {
+      ...newPath,
+      id: crypto.randomUUID(),
+      timestamp: new Date().toISOString()
+    }];
+    return updatedPaths;
+  });
+};
+
 
   const removePath = (pathId) => {
     setPaths(prevPaths =>
