@@ -28,6 +28,8 @@ import {
   Box
 } from '@mui/material';
 import { right } from '@popperjs/core';
+import { Button } from '@mui/material';
+
 // Custom Marker Icon
 const customMarkerIcon = L.divIcon({
   className: 'custom-marker-icon',
@@ -65,17 +67,25 @@ const DeletionModal = ({ selectedItem, onDelete, onClose }) => {
     }).join(', ');
   };
 
+  // New helper:
+  const normalizeCoords = (coordinates) => {
+    if (!Array.isArray(coordinates)) return [];
+    if (Array.isArray(coordinates[0])) return coordinates;
+    return coordinates.map(pt => pt.coordinates || []);
+  };
+
+  // Updated length calculator:
   const calculatePathLength = (coordinates) => {
-    if (!coordinates || coordinates.length < 2) return 0;
-
+    const pts = normalizeCoords(coordinates);
+    if (pts.length < 2) return 0;
     let totalDistance = 0;
-    for (let i = 1; i < coordinates.length; i++) {
-      const coord1 = L.latLng(coordinates[i - 1][0], coordinates[i - 1][1]);
-      const coord2 = L.latLng(coordinates[i][0], coordinates[i][1]);
-      totalDistance += coord1.distanceTo(coord2);
+    for (let i = 1; i < pts.length; i++) {
+      const [lat1, lng1] = pts[i - 1];
+      const [lat2, lng2] = pts[i];
+      totalDistance += L.latLng(lat1, lng1)
+        .distanceTo(L.latLng(lat2, lng2));
     }
-
-    return (totalDistance / 1000).toFixed(2); // Convert to kilometers
+    return (totalDistance / 1000).toFixed(2);
   };
 
   return (
@@ -163,6 +173,12 @@ const DeletionModal = ({ selectedItem, onDelete, onClose }) => {
           <p>
             <strong>تاریخ ایجاد:</strong> {new Date(selectedItem.item.timestamp).toLocaleDateString('fa-IR')}
           </p>
+          <p>
+            <strong>دقت GPS:</strong>
+            {selectedItem.item.gpsMeta?.coords?.accuracy
+              ? `${selectedItem.item.gpsMeta.coords.accuracy} متر`
+              : 'اطلاعات موجود نیست'}
+          </p>
         </div>
       )}
 
@@ -207,93 +223,7 @@ const DeletionModal = ({ selectedItem, onDelete, onClose }) => {
   )
 }
 
-// Action Panel Component
-function ActionPanel({
-  isTracking,
-  onStartTracking,
-  onStopTracking,
-  onAddMarker,
-  pathCoordinates,
-  onShowFilter  // New prop for filter
-}) {
-  const calculatePathLength = () => {
-    if (pathCoordinates.length < 2) return 0;
 
-    let totalDistance = 0;
-    for (let i = 1; i < pathCoordinates.length; i++) {
-      const coord1 = L.latLng(pathCoordinates[i - 1][0], pathCoordinates[i - 1][1]);
-      const coord2 = L.latLng(pathCoordinates[i][0], pathCoordinates[i][1]);
-      totalDistance += coord1.distanceTo(coord2);
-    }
-
-    return totalDistance; // in meters
-  }
-
-  const pathLength = calculatePathLength();
-
-  return (
-    <div className="bottom-action-panel">
-      {!isTracking ? (
-        <button
-          onClick={onStartTracking}
-          className="action-button start-tracking-btn"
-          onMouseOver={(e) => e.target.style.backgroundColor = '#45a049'}
-          onMouseOut={(e) => e.target.style.backgroundColor = '#4CAF50'}
-        >
-          <span>▶</span> شروع ردیابی
-        </button>
-      ) : (
-        <button
-          onClick={onStopTracking}
-          className="action-button stop-tracking-btn"
-          onMouseOver={(e) => e.target.style.backgroundColor = '#e53935'}
-          onMouseOut={(e) => e.target.style.backgroundColor = '#F44336'}
-        >
-          <span>■</span> توقف ردیابی
-        </button>
-      )}
-
-      <button
-        onClick={onAddMarker}
-        className="action-button add-marker-btn"
-        onMouseOver={(e) => e.target.style.backgroundColor = '#1976D2'}
-        onMouseOut={(e) => e.target.style.backgroundColor = '#2196F3'}
-      >
-        <span>+</span> افزودن نشانگر
-      </button>
-
-      <button
-        onClick={onShowFilter}
-        style={{
-          backgroundColor: 'purple',
-          color: 'white',
-          padding: '10px 20px',
-          border: 'none',
-          borderRadius: '5px'
-        }}
-      >
-        فیلتر
-      </button>
-
-      {pathLength > 0 && (
-        <div style={{
-          backgroundColor: '#FFC107',
-          color: 'black',
-          borderRadius: '15px',
-          padding: '10px 15px',
-          fontSize: '14px',
-          fontWeight: 'bold',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px'
-        }}>
-          <span>مسافت:</span>
-          <span>{pathLength} متر</span>
-        </div>
-      )}
-    </div>
-  )
-}
 
 // Path Save Modal Component
 function PathSaveModal({ onSave, onClose, pathCoordinates }) {
@@ -504,6 +434,13 @@ const Map = () => {
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [mapLayer, setMapLayer] = useState('street');
   const trackingTimeoutRef = useRef(null);
+  const [lastGpsData, setLastGpsData] = useState(null);
+  const [isDrawingPath, setIsDrawingPath] = useState(false);
+  const [manualPathPoints, setManualPathPoints] = useState([]);
+  const [gpsMetaPoints, setGpsMetaPoints] = useState([]);
+  const [modalMode, setModalMode] = useState(null); // 'gps' or 'manual'
+
+
 
   const handleExport = (format = 'json') => {
     exportMapData(format); // Make sure this uses the enhanced export function we created earlier
@@ -561,6 +498,7 @@ const Map = () => {
         const newPosition = [latitude, longitude];
 
         setUserLocation(newPosition);
+        setLastGpsData(position);
         setLocationAccuracy(accuracy);
         setPosition(newPosition);
         setZoom(15);
@@ -587,6 +525,21 @@ const Map = () => {
     );
   }, []);
 
+
+  const startManualPath = () => {
+    setIsDrawingPath(true);
+    setManualPathPoints([]);
+    setLocationError(null);
+  };
+  const finishManualPath = () => {
+    // setIsDrawingPath(false);
+    if (manualPathPoints.length > 1) {
+      setModalMode('manual');
+      setShowPathSaveModal(true);
+    } else {
+      setLocationError('مسیر بسیار کوتاه است. حداقل دو نقطه نیاز است.');
+    }
+  };
   const pathCoordinatesRef = useRef(pathCoordinates);
 
   useEffect(() => {
@@ -617,17 +570,19 @@ const Map = () => {
     watchIdRef.current = navigator.geolocation.watchPosition(
       (position) => {
         console.log('GPS update:', position.coords.latitude, position.coords.longitude, 'accuracy:', position.coords.accuracy);
-        const { latitude, longitude, accuracy } = position.coords;
+        setLastGpsData(position);
+        const { latitude, longitude, accuracy, altitude, speed, heading } = position.coords;
         const newLocation = [latitude, longitude];
 
         clearTimeout(trackingTimeoutRef.current);
 
-        if (accuracy <= 500) {
+        if (accuracy <= 5000) {
           setUserLocation(newLocation);
           setLocationError(null);
+          // record coords
           setPathCoordinates(prev => {
             if (prev.length === 0) {
-              return [newLocation];
+              return [...prev, newLocation];
             }
             const lastCoord = prev[prev.length - 1];
             const minDistance = 0.000001;
@@ -637,6 +592,12 @@ const Map = () => {
 
             return isNewPointFarEnough ? [...prev, newLocation] : prev;
           });
+
+          // record full metadata object
+          setGpsMetaPoints(prev => [...prev, {
+            coords: { latitude, longitude, accuracy, altitude, speed, heading },
+            timestamp: position.timestamp
+          }]);
         }
       },
       (error) => {
@@ -676,6 +637,7 @@ const Map = () => {
     setIsTracking(false);
 
     if (pathCoordinates.length > 1) {
+      setModalMode('gps');
       setShowPathSaveModal(true);
     } else {
       setPathCoordinates([]);
@@ -714,9 +676,14 @@ const Map = () => {
 
   // Save path method
   const handleSavePath = (pathData) => {
-    addPath(pathData);
+    addPath({
+      ...pathData,
+      coordinates: pathCoordinates, // Save GPS-tracked path
+      pointsMeta: gpsMetaPoints
+    });
     setShowPathSaveModal(false);
     setPathCoordinates([]);
+    setGpsMetaPoints([]);
   };
 
   // Initial geolocation setup
@@ -726,10 +693,24 @@ const Map = () => {
 
   // Map Click Handler
   const handleMapClick = (latlng) => {
-    setSelectedLocation({
-      lat: latlng.lat,
-      lng: latlng.lng
-    });
+    if (isDrawingPath) {
+      // Use current lastGpsData
+      setManualPathPoints(prev => [
+        ...prev,
+        {
+          coordinates: [latlng.lat, latlng.lng],
+          gpsMeta: lastGpsData ? {
+            coords: { ...lastGpsData.coords },
+            timestamp: lastGpsData.timestamp
+          } : null
+        }
+      ]);
+    } else {
+      setSelectedLocation({
+        lat: latlng.lat,
+        lng: latlng.lng
+      });
+    }
   };
 
   // Node Modal Handler
@@ -750,13 +731,17 @@ const Map = () => {
     const file = event.target.files[0];
     if (file) {
       importMapData(file)
-        .then(() => {
+        .then(({ markers: newMarkers, paths: newPaths }) => {
+          // 1) clear current state
+          markers.forEach(m => removeMarker(m.id));
+          paths.forEach(p => removePath(p.id));
+
+          // 2) add merged data back
+          newMarkers.forEach(m => addMarker(m));
+          newPaths.forEach(p => addPath(p));
+
           alert('اطلاعات با موفقیت وارد شد!');
         })
-        .catch(error => {
-          console.error('Import failed:', error);
-          alert('واردسازی اطلاعات ناموفق بود');
-        });
     }
   };
 
@@ -783,7 +768,16 @@ const Map = () => {
     filterOptions.pathTypes.length === 0 ||
     filterOptions.pathTypes.includes(path.type)
   );
-
+  const handleSaveManualPath = (pathData) => {
+    // pathData.coordinates will be an array of {coordinates: [lat,lng], gpsMeta}
+    addPath({
+      ...pathData,
+      coordinates: manualPathPoints, // store as objects with gpsMeta
+    });
+    setShowPathSaveModal(false);
+    setManualPathPoints([]);
+    setIsDrawingPath(false); // end drawing mode
+  };
   // Path color helper function
   const getPathColor = (pathType) => {
     switch (pathType) {
@@ -828,9 +822,18 @@ const Map = () => {
       {/* Path Save Modal */}
       {showPathSaveModal && (
         <PathSaveModal
-          onSave={handleSavePath}
-          onClose={() => setShowPathSaveModal(false)}
-          pathCoordinates={pathCoordinates}
+          onSave={modalMode === 'manual' ? handleSaveManualPath : handleSavePath}
+          onClose={() => {
+            setShowPathSaveModal(false);
+            if (modalMode === 'manual') {
+              setManualPathPoints([]);
+              setIsDrawingPath(false);
+            } else {
+              setPathCoordinates([]);
+            }
+            setModalMode(null);
+          }}
+          pathCoordinates={modalMode === 'manual' ? manualPathPoints : pathCoordinates}
         />
       )}
 
@@ -838,6 +841,7 @@ const Map = () => {
       {selectedLocation && (
         <NodeModal
           location={selectedLocation}
+          gpsMeta={lastGpsData}
           onClose={() => setSelectedLocation(null)}
           onSave={handleSaveNode}
         />
@@ -915,7 +919,17 @@ const Map = () => {
             color="blue"
             weight={5}
             opacity={isTracking ? 0.7 : 1}
-            // dashArray={isTracking ? "1, 1" : null} // Dashed line while tracking
+          // dashArray={isTracking ? "1, 1" : null} // Dashed line while tracking
+          />
+        )}
+
+        {/* Manual Path Drawing Polyline */}
+        {isDrawingPath && manualPathPoints.length > 0 && (
+          <Polyline
+            positions={manualPathPoints.map(pt => pt.coordinates)}
+            color="blue"
+            weight={5}
+            opacity={0.7}
           />
         )}
 
@@ -935,21 +949,25 @@ const Map = () => {
 
         {/* Path markers */}
         {filteredPaths.map((path) => {
-          if (!path.coordinates || !Array.isArray(path.coordinates) || path.coordinates.length === 0) {
-            console.warn('Path has invalid coordinates:', path);
-            return null; // Skip this path
+          let polylinePositions = [];
+          if (Array.isArray(path.coordinates) && typeof path.coordinates[0] === 'object' && Array.isArray(path.coordinates[0].coordinates)) {
+            polylinePositions = path.coordinates.map(pt => pt.coordinates);
+          } else if (Array.isArray(path.coordinates[0])) {
+            polylinePositions = path.coordinates;
           }
           return (
             <React.Fragment key={path.id}>
               <Polyline
-                positions={path.coordinates}
+                positions={
+                  Array.isArray(path.coordinates) && path.coordinates.length > 0
+                    ? typeof path.coordinates[0] === 'object' && Array.isArray(path.coordinates[0].coordinates)
+                      ? path.coordinates.map(pt => pt.coordinates)
+                      : path.coordinates
+                    : []
+                }
                 color={getPathColor(path.type)}
                 weight={5}
                 opacity={0.7}
-              />
-              <Marker
-                position={path.coordinates[0]}
-                icon={customMarkerIcon}
                 eventHandlers={{
                   click: () => handlePathClick(path)
                 }}
@@ -961,7 +979,7 @@ const Map = () => {
                     <p>نوع مسیر: {path.type}</p>
                   </div>
                 </Popup>
-              </Marker>
+              </Polyline>
             </React.Fragment>
           );
         })}
@@ -973,9 +991,22 @@ const Map = () => {
         onStopTracking={stopTracking}
         onAddMarker={() => setSelectedLocation({ lat: position[0], lng: position[1] })}
         onExport={handleExport} // Add this line
-        // onImportClick={() => document.getElementById('importInput').click()}
+        onImportClick={() => document.getElementById('importInput').click()}
         onFilter={() => setShowFilterModal(true)}
+        onStartManualPath={startManualPath}
+        isDrawingPath={isDrawingPath}
       />
+
+      {isDrawingPath && (
+        <Button
+          onClick={finishManualPath}
+          variant="contained"
+          color="success"
+          style={{ position: "fixed", bottom: 70, right: 20, zIndex: 9999 }}
+        >
+          پایان مسیر و ذخیره
+        </Button>
+      )}
 
       <input
         id="importInput"

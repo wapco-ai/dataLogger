@@ -5,7 +5,7 @@
   "type": "module",
   "homepage": "https://wapco-ai.github.io/dataLogger/",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --host",
     "build": "vite build",
     "preview": "vite preview",
     "workbox": "workbox generateSW workbox-config.js",

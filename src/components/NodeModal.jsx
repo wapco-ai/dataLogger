@@ -1,23 +1,23 @@
 import React, { useState } from 'react';
-import { 
-  Dialog, 
-  DialogTitle, 
-  DialogContent, 
-  DialogActions, 
-  TextField, 
-  Select, 
-  MenuItem, 
-  FormControl, 
-  InputLabel, 
-  FormGroup, 
-  FormControlLabel, 
-  Checkbox, 
-  Radio, 
-  RadioGroup, 
-  Button 
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  FormGroup,
+  FormControlLabel,
+  Checkbox,
+  Radio,
+  RadioGroup,
+  Button
 } from '@mui/material';
 
-function NodeModal({ location, onClose, onSave }) {
+function NodeModal({ location, gpsMeta, onClose, onSave }) {
   const [nodeData, setNodeData] = useState({
     name: '',
     description: '',
@@ -50,18 +50,29 @@ function NodeModal({ location, onClose, onSave }) {
       setError('نام گره را وارد کنید');
       return;
     }
-    
+
     const selectedTransportModes = Object.keys(nodeData.transportModes)
       .filter(mode => nodeData.transportModes[mode]);
-    
+
     onSave({
       ...nodeData,
       latitude: location.lat,
       longitude: location.lng,
       timestamp: new Date().toISOString(),
       transportModes: selectedTransportModes,
+      gpsMeta: gpsMeta ? {
+        coords: {
+          latitude: gpsMeta.coords.latitude,
+          longitude: gpsMeta.coords.longitude,
+          accuracy: gpsMeta.coords.accuracy,
+          altitude: gpsMeta.coords.altitude,
+          speed: gpsMeta.coords.speed,
+          heading: gpsMeta.coords.heading,
+        },
+        timestamp: gpsMeta.timestamp,
+      } : null
     });
-    
+
     onClose();
   };
 
@@ -70,14 +81,14 @@ function NodeModal({ location, onClose, onSave }) {
       <DialogTitle sx={{ textAlign: 'center', fontWeight: 'bold' }}>
         ایجاد گره جدید
       </DialogTitle>
-      
+
       <DialogContent dividers>
         {error && (
           <div style={{ color: 'red', marginBottom: '16px', textAlign: 'center' }}>
             {error}
           </div>
         )}
-        
+
         <TextField
           label="نام گره"
           fullWidth
@@ -86,7 +97,7 @@ function NodeModal({ location, onClose, onSave }) {
           onChange={(e) => handleChange('name', e.target.value)}
           required
         />
-        
+
         <TextField
           label="توضیحات"
           fullWidth
@@ -96,7 +107,7 @@ function NodeModal({ location, onClose, onSave }) {
           value={nodeData.description}
           onChange={(e) => handleChange('description', e.target.value)}
         />
-        
+
         <FormControl fullWidth margin="normal">
           <InputLabel>نوع گره</InputLabel>
           <Select
@@ -110,7 +121,7 @@ function NodeModal({ location, onClose, onSave }) {
             <MenuItem value="other">سایر</MenuItem>
           </Select>
         </FormControl>
-        
+
         <FormControl component="fieldset" fullWidth margin="normal">
           <InputLabel shrink>شیوه‌های حمل و نقل</InputLabel>
           <FormGroup>
@@ -143,7 +154,7 @@ function NodeModal({ location, onClose, onSave }) {
             />
           </FormGroup>
         </FormControl>
-        
+
         <FormControl component="fieldset" fullWidth margin="normal">
           <InputLabel shrink>جنسیت تردد</InputLabel>
           <RadioGroup
@@ -156,7 +167,7 @@ function NodeModal({ location, onClose, onSave }) {
           </RadioGroup>
         </FormControl>
       </DialogContent>
-      
+
       <DialogActions>
         <Button onClick={onClose} color="secondary">
           انصراف

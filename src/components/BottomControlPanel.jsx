@@ -1,11 +1,18 @@
 import React, { useState } from 'react';
-import { 
-  Box, 
-  Button, 
-  Menu, 
+import {
+  AppBar,
+  Toolbar,
+  IconButton,
+  Typography,
+  useTheme,
+  useMediaQuery,
+  Tooltip,
+  Box,
+  Button,
+  Menu,
   MenuItem,
   ListItemIcon,
-  ListItemText 
+  ListItemText
 } from '@mui/material';
 import {
   PlayArrow,
@@ -15,6 +22,7 @@ import {
   FileDownload,
   FileUpload,
   Layers,
+  Gesture,
   Map as MapIcon
 } from '@mui/icons-material';
 
@@ -25,14 +33,18 @@ export default function BottomControlPanel({
   onAddMarker,
   onExport,
   onImportClick,
-  onFilter
+  onFilter,
+  onStartManualPath, // <-- Add this prop!
+  isDrawingPath // <-- Track if drawing manually
 }) {
+  const theme = useTheme();
+  const isXs  = useMediaQuery(theme.breakpoints.down('sm'));
+  // const isXs = useMediaQuery('(max-width:600px)');
+  const iconSize = isXs ? 'small' : 'medium';
   const [exportAnchorEl, setExportAnchorEl] = useState(null);
-  
   const handleExportClick = (event) => {
     setExportAnchorEl(event.currentTarget);
   };
-  
   const handleExportClose = (format) => {
     setExportAnchorEl(null);
     if (format && typeof onExport === 'function') {
@@ -41,103 +53,75 @@ export default function BottomControlPanel({
   };
 
   return (
-    <Box
-      sx={{
-        position: 'fixed',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        bgcolor: 'background.paper',
-        display: 'flex',
-        justifyContent: 'center',
-        padding: '8px',
-        zIndex: 1200,
-        borderTop: '1px solid',
-        borderColor: 'divider',
-        gap: 1
-      }}
-    >
-      <Button
-        onClick={isTracking ? onStopTracking : onStartTracking}
-        startIcon={isTracking ? <Stop /> : <PlayArrow />}
-        variant={isTracking ? 'contained' : 'outlined'}
-        color={isTracking ? 'error' : 'success'}
-        size="small"
-      >
-        {isTracking ? 'توقف' : 'ردیابی'}
-      </Button>
+    <AppBar position="fixed" color="inherit" sx={{ top: 'auto', bottom: 0 }}>
+      <Toolbar sx={{ justifyContent: 'space-around' }}>
+        <Tooltip title={isTracking ? "توقف ردیابی" : "شروع ردیابی"} arrow>
+          <IconButton color={isTracking ? 'error' : 'success'} onClick={isTracking ? onStopTracking : onStartTracking} size={iconSize}>
+            {isTracking ? <Stop /> : <PlayArrow />}
+          </IconButton>
+        </Tooltip>
 
-      <Button
-        onClick={onAddMarker}
-        startIcon={<AddLocationAlt />}
-        variant="outlined"
-        color="primary"
-        size="small"
-      >
-        نشانگر
-      </Button>
+        <Tooltip title="نشانگر" arrow>
+          <IconButton color="primary" onClick={onAddMarker} size={iconSize}>
+            <AddLocationAlt />
+          </IconButton>
+        </Tooltip>
 
-      <Button
-        onClick={onFilter}
-        startIcon={<FilterList />}
-        variant="outlined"
-        color="secondary"
-        size="small"
-      >
-        فیلتر
-      </Button>
+        <Tooltip title="مسیر دستی" arrow>
+          <IconButton color={isDrawingPath ? 'success' : 'primary'} onClick={onStartManualPath} size={iconSize}>
+            <Gesture />
+          </IconButton>
+        </Tooltip>
 
-      <Button
-        onClick={handleExportClick}
-        startIcon={<FileDownload />}
-        variant="contained"
-        color="warning"
-        size="small"
-      >
-        خروجی
-      </Button>
-      
+        <Tooltip title="فیلتر" arrow>
+          <IconButton color="secondary" onClick={onFilter} size={iconSize}>
+            <FilterList />
+          </IconButton>
+        </Tooltip>
 
-      <Menu
-        anchorEl={exportAnchorEl}
-        open={Boolean(exportAnchorEl)}
-        onClose={() => handleExportClose()}
-      >
-        <MenuItem onClick={() => handleExportClose('geojson')}>
-          <ListItemIcon>
-            <MapIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>GeoJSON</ListItemText>
-        </MenuItem>
-        <MenuItem onClick={() => handleExportClose('kml')}>
-          <ListItemIcon>
-            <Layers fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>KML</ListItemText>
-        </MenuItem>
-        <MenuItem onClick={() => handleExportClose('csv')}>
-          <ListItemIcon>
-            <FileDownload fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>CSV</ListItemText>
-        </MenuItem>
-        <MenuItem onClick={() => handleExportClose('json')}>
-          <ListItemIcon>
-            <FileDownload fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>JSON</ListItemText>
-        </MenuItem>
-      </Menu>
+        <Tooltip title="خروجی" arrow>
+          <IconButton color="warning" onClick={handleExportClick} size={iconSize}>
+            <FileDownload />
+          </IconButton>
+        </Tooltip>
 
-      <Button
-        onClick={onImportClick}
-        startIcon={<FileUpload />}
-        variant="outlined"
-        size="small"
-        sx={{ ml: 'auto' }}
-      >
-        ورودی
-      </Button>
-    </Box>
+        <Menu
+                anchorEl={exportAnchorEl}
+                open={Boolean(exportAnchorEl)}
+                onClose={() => handleExportClose()}
+              >
+                <MenuItem onClick={() => handleExportClose('geojson')}>
+                  <ListItemIcon>
+                    <MapIcon fontSize="small" />
+                  </ListItemIcon>
+                  <ListItemText>GeoJSON</ListItemText>
+                </MenuItem>
+                <MenuItem onClick={() => handleExportClose('kml')}>
+                  <ListItemIcon>
+                    <Layers fontSize="small" />
+                  </ListItemIcon>
+                  <ListItemText>KML</ListItemText>
+                </MenuItem>
+                <MenuItem onClick={() => handleExportClose('csv')}>
+                  <ListItemIcon>
+                    <FileDownload fontSize="small" />
+                  </ListItemIcon>
+                  <ListItemText>CSV</ListItemText>
+                </MenuItem>
+                <MenuItem onClick={() => handleExportClose('json')}>
+                  <ListItemIcon>
+                    <FileDownload fontSize="small" />
+                  </ListItemIcon>
+                  <ListItemText>JSON</ListItemText>
+                </MenuItem>
+              </Menu>
+
+        <Tooltip title="ورودی" arrow>
+          <IconButton color="inherit" onClick={onImportClick} size={iconSize}>
+            <FileUpload />
+          </IconButton>
+        </Tooltip>
+      </Toolbar>
+    </AppBar>
   );
 }

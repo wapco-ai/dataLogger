@@ -1,5 +1,7 @@
 
 import React, { useState } from 'react'
+import { ThemeProvider } from '@mui/material/styles';
+import theme from './theme';
 import Map from './components/Map'
 import NodeModal from './components/NodeModal'
 
@@ -19,23 +21,25 @@ function App() {
   }
 
   return (
-    <div style={{ 
-      height: '100vh', 
-      width: '100vw', 
-      margin: 0, 
-      padding: 0, 
-      overflow: 'hidden' 
+    <div style={{
+      height: '100vh',
+      width: '100vw',
+      margin: 0,
+      padding: 0,
+      overflow: 'hidden'
     }}>
-      <Map 
-        onMapClick={handleMapClick}
-        style={{ 
-          height: '100%', 
-          width: '100%' 
-        }} 
-      />
+      <ThemeProvider theme={theme}>
+        <Map
+          onMapClick={handleMapClick}
+          style={{
+            height: '100%',
+            width: '100%'
+          }}
+        />
+        </ThemeProvider>
 
       {isNodeModalOpen && (
-        <NodeModal 
+        <NodeModal
           location={selectedLocation}
           onClose={handleCloseModal}
         />

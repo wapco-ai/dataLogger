@@ -47,6 +47,16 @@ const useMarkerStorage = () => {
   };
 };
 
+// helper to flatten any shape:
+function flattenCoords(arr) {
+  if (!Array.isArray(arr)) return [];
+  // arr[0] is either a number-array or an object with .coordinates
+  if (typeof arr[0] === 'object' && Array.isArray(arr[0].coordinates)) {
+    return arr.map(pt => pt.coordinates);
+  }
+  return arr;
+}
+
 // Path Storage Hook
 const usePathStorage = () => {
   const [paths, setPaths] = useState(() => {
@@ -119,13 +129,26 @@ const exportMapData = (format = 'geojson') => {
             type: 'Feature',
             geometry: {
               type: 'LineString',
-              coordinates: path.coordinates.map(coord => [coord[1], coord[0]]) // [lng, lat]
+              coordinates: Array.isArray(path.coordinates)
+                ? (
+                  typeof path.coordinates[0] === 'object' && Array.isArray(path.coordinates[0].coordinates)
+                    ? path.coordinates.map(pt => [pt.coordinates[1], pt.coordinates[0]]) // [lng, lat]
+                    : path.coordinates.map(coord => [coord[1], coord[0]])
+                )
+                : []
             },
             properties: {
               name: path.name,
               description: path.description,
               type: path.type,
-              timestamp: path.timestamp
+              timestamp: path.timestamp,
+              pointsMeta: Array.isArray(path.coordinates)
+                ? (
+                  typeof path.coordinates[0] === 'object' && path.coordinates[0].gpsMeta
+                    ? path.coordinates.map(pt => pt.gpsMeta)
+                    : []
+                )
+                : []
             }
           }))
         ]
@@ -136,33 +159,25 @@ const exportMapData = (format = 'geojson') => {
       break;
 
     case 'kml':
-      // KML implementation
-      const kmlHeader = `<?xml version="1.0" encoding="UTF-8"?>
-<kml xmlns="http://www.opengis.net/kml/2.2">
-  <Document>`;
+      const kmlHeader = `<?xml …>`;
+      const kmlFooter = `</Document></kml>`;
 
-      const kmlFooter = `  </Document>
-</kml>`;
-
-      const pointsKML = markers.map(marker => `
-    <Placemark>
-      <name>${marker.data?.name || 'Unnamed Marker'}</name>
-      <description>${marker.data?.description || ''}</description>
-      <Point>
-        <coordinates>${marker.position[1]},${marker.position[0]},0</coordinates>
-      </Point>
-    </Placemark>`).join('');
-
-      const pathsKML = paths.map(path => `
+      const pathsKML = paths.map(path => {
+        const coords = flattenCoords(path.coordinates);
+        const coordsStr = coords
+          .map(c => `${c[1]},${c[0]},0`)  // always [lng,lat,0]
+          .join(' ');
+        return `
     <Placemark>
       <name>${path.name || 'Unnamed Path'}</name>
       <description>${path.description || ''}</description>
       <LineString>
         <coordinates>
-          ${path.coordinates.map(coord => `${coord[1]},${coord[0]},0`).join(' ')}
+          ${coordsStr}
         </coordinates>
       </LineString>
-    </Placemark>`).join('');
+    </Placemark>`;
+      }).join('');
 
       dataStr = kmlHeader + pointsKML + pathsKML + kmlFooter;
       mimeType = 'application/vnd.google-earth.kml+xml';
@@ -170,21 +185,23 @@ const exportMapData = (format = 'geojson') => {
       break;
 
     case 'csv':
-      // CSV implementation
       const csvHeaders = 'Type,Name,Description,Latitude,Longitude,Timestamp\n';
-
       const markersCSV = markers.map(marker =>
         `Point,"${marker.data?.name || ''}","${marker.data?.description || ''}",${marker.position[0]},${marker.position[1]},"${marker.timestamp}"`
       ).join('\n');
 
-      const pathsCSV = paths.map(path =>
-        `Line,"${path.name || ''}","${path.description || ''}",${path.coordinates[0][0]},${path.coordinates[0][1]},"${path.timestamp}"`
-      ).join('\n');
+      const pathsCSV = paths.map(path => {
+        const coords = flattenCoords(path.coordinates);
+        const [lat, lng] = coords[0] || ['', ''];  // use first point
+        return `Line,"${path.name}","${path.description}",${lat},${lng},"${path.timestamp}"`;
+      }).join('\n');
 
-      dataStr = csvHeaders + markersCSV + (markers.length && paths.length ? '\n' : '') + pathsCSV;
+      dataStr = csvHeaders + markersCSV + (markersCSV && pathsCSV ? '\n' : '') + pathsCSV;
       mimeType = 'text/csv';
       fileExtension = 'csv';
       break;
+
+
 
     default: // JSON
       const exportData = {
@@ -212,31 +229,83 @@ const exportMapData = (format = 'geojson') => {
 };
 
 // Import Utility
+// replace your existing importMapData with this:
 const importMapData = (file) => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-
     reader.onload = (event) => {
+      let importedData;
       try {
-        const importedData = JSON.parse(event.target.result);
-
-        if (importedData.version && importedData.markers && importedData.paths) {
-          localStorage.setItem('mapMarkers', JSON.stringify(importedData.markers));
-          localStorage.setItem('mapPaths', JSON.stringify(importedData.paths));
-
-          resolve(importedData);
-        } else {
-          reject(new Error('Invalid import file format'));
-        }
-      } catch (error) {
-        reject(error);
+        importedData = JSON.parse(event.target.result);
+      } catch (e) {
+        return reject(new Error('Invalid JSON'));
       }
+
+      // 1) Your custom JSON format
+      if (importedData.version && importedData.markers && importedData.paths) {
+        localStorage.setItem('mapMarkers', JSON.stringify(importedData.markers));
+        localStorage.setItem('mapPaths', JSON.stringify(importedData.paths));
+        return resolve(importedData);
+      }
+
+      // 2) GeoJSON FeatureCollection
+      // inside importMapData, after you parse the GeoJSON:
+      if (
+        importedData.type === 'FeatureCollection' &&
+        Array.isArray(importedData.features)
+      ) {
+        const existingMarkers = JSON.parse(localStorage.getItem('mapMarkers') || '[]');
+        const existingPaths = JSON.parse(localStorage.getItem('mapPaths') || '[]');
+        let nextId = Date.now();
+
+        const parsedMarkers = [];
+        const parsedPaths = [];
+
+        importedData.features.forEach((feature) => {
+          const { geometry, properties = {} } = feature;
+          if (!geometry) return;
+
+          if (geometry.type === 'Point') {
+            const [lng, lat] = geometry.coordinates;
+            parsedMarkers.push({
+              id: nextId++,
+              position: [lat, lng],
+              data: properties,
+              timestamp: properties.timestamp || new Date().toISOString()
+            });
+          }
+          else if (geometry.type === 'LineString') {
+            const coords = geometry.coordinates.map(([lng, lat]) => [lat, lng]);
+            parsedPaths.push({
+              id: nextId++,
+              name: properties.name || '',
+              description: properties.description || '',
+              type: properties.type || '',
+              coordinates: coords,
+              timestamp: properties.timestamp || new Date().toISOString()
+            });
+          }
+        });
+
+        const mergedMarkers = existingMarkers.concat(parsedMarkers);
+        const mergedPaths = existingPaths.concat(parsedPaths);
+
+        localStorage.setItem('mapMarkers', JSON.stringify(mergedMarkers));
+        localStorage.setItem('mapPaths', JSON.stringify(mergedPaths));
+
+        return resolve({ markers: mergedMarkers, paths: mergedPaths });
+      }
+
+
+      // 3) Unknown format
+      reject(new Error('Invalid import file format'));
     };
 
-    reader.onerror = (error) => reject(error);
+    reader.onerror = () => reject(new Error('File read error'));
     reader.readAsText(file);
   });
 };
+
 
 // Named exports
 export {
