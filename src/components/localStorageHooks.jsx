@@ -16,7 +16,7 @@ const useMarkerStorage = () => {
     setMarkers(prevMarkers => {
       const updatedMarkers = [...prevMarkers, {
         ...newMarker,
-        id: Date.now(),
+        id: crypto.randomUUID(),
         timestamp: new Date().toISOString()
       }];
       return updatedMarkers;
@@ -243,20 +243,40 @@ const importMapData = (file) => {
 
       // 1) Your custom JSON format
       if (importedData.version && importedData.markers && importedData.paths) {
-        localStorage.setItem('mapMarkers', JSON.stringify(importedData.markers));
-        localStorage.setItem('mapPaths', JSON.stringify(importedData.paths));
-        return resolve(importedData);
+        // 1. Read what’s already stored
+        const existingMarkers = JSON.parse(localStorage.getItem('mapMarkers') || '[]');
+        const existingPaths = JSON.parse(localStorage.getItem('mapPaths') || '[]');
+
+        // 2. Assign fresh UUIDs to every imported item
+        const newMarkers = importedData.markers.map(m => ({
+          ...m,
+          id: crypto.randomUUID()
+        }));
+        const newPaths = importedData.paths.map(p => ({
+          ...p,
+          id: crypto.randomUUID()
+        }));
+
+        // 3. Merge old + new, then persist
+        const mergedMarkers = existingMarkers.concat(newMarkers);
+        const mergedPaths = existingPaths.concat(newPaths);
+
+        localStorage.setItem('mapMarkers', JSON.stringify(mergedMarkers));
+        localStorage.setItem('mapPaths', JSON.stringify(mergedPaths));
+
+        // 4. Return merged result so your Map.jsx can optionally update state
+        return resolve({ markers: mergedMarkers, paths: mergedPaths });
       }
 
+
       // 2) GeoJSON FeatureCollection
-      // inside importMapData, after you parse the GeoJSON:
       if (
         importedData.type === 'FeatureCollection' &&
         Array.isArray(importedData.features)
       ) {
+        // read existing data
         const existingMarkers = JSON.parse(localStorage.getItem('mapMarkers') || '[]');
         const existingPaths = JSON.parse(localStorage.getItem('mapPaths') || '[]');
-        let nextId = Date.now();
 
         const parsedMarkers = [];
         const parsedPaths = [];
@@ -268,7 +288,8 @@ const importMapData = (file) => {
           if (geometry.type === 'Point') {
             const [lng, lat] = geometry.coordinates;
             parsedMarkers.push({
-              id: nextId++,
+              // use a UUID so keys are always unique
+              id: crypto.randomUUID(),
               position: [lat, lng],
               data: properties,
               timestamp: properties.timestamp || new Date().toISOString()
@@ -277,7 +298,7 @@ const importMapData = (file) => {
           else if (geometry.type === 'LineString') {
             const coords = geometry.coordinates.map(([lng, lat]) => [lat, lng]);
             parsedPaths.push({
-              id: nextId++,
+              id: crypto.randomUUID(),
               name: properties.name || '',
               description: properties.description || '',
               type: properties.type || '',
@@ -287,6 +308,7 @@ const importMapData = (file) => {
           }
         });
 
+        // merge instead of replace
         const mergedMarkers = existingMarkers.concat(parsedMarkers);
         const mergedPaths = existingPaths.concat(parsedPaths);
 
