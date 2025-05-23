@@ -69,15 +69,15 @@ const usePathStorage = () => {
   }, [paths]);
 
   const addPath = (newPath) => {
-  setPaths(prevPaths => {
-    const updatedPaths = [...prevPaths, {
-      ...newPath,
-      id: crypto.randomUUID(),
-      timestamp: new Date().toISOString()
-    }];
-    return updatedPaths;
-  });
-};
+    setPaths(prevPaths => {
+      const updatedPaths = [...prevPaths, {
+        ...newPath,
+        id: crypto.randomUUID(),
+        timestamp: new Date().toISOString()
+      }];
+      return updatedPaths;
+    });
+  };
 
 
   const removePath = (pathId) => {
@@ -112,9 +112,21 @@ const exportMapData = (format = 'geojson') => {
 
   let dataStr, mimeType, fileExtension;
 
+  function transportModesToString(val) {
+    // Accepts either array or object
+    if (Array.isArray(val)) return val.join(',');
+    if (typeof val === 'object' && val !== null) {
+      return Object.entries(val)
+        .filter(([k, v]) => v)
+        .map(([k]) => k)
+        .join(',');
+    }
+    return '';
+  }
+
   switch (format) {
     case 'geojson':
-      // GeoJSON implementation
+      // See previous message for GeoJSON block.
       const geoJsonData = {
         type: 'FeatureCollection',
         features: [
@@ -122,9 +134,13 @@ const exportMapData = (format = 'geojson') => {
             type: 'Feature',
             geometry: {
               type: 'Point',
-              coordinates: [marker.position[1], marker.position[0]] // GeoJSON uses [lng, lat]
+              coordinates: [marker.position[1], marker.position[0]]
             },
-            properties: marker.data || {}
+            properties: {
+              ...(marker.data || {}),
+              transportModes: marker.data?.transportModes || [],
+              gender: marker.data?.gender || '',
+            }
           })),
           ...paths.map(path => ({
             type: 'Feature',
@@ -133,7 +149,7 @@ const exportMapData = (format = 'geojson') => {
               coordinates: Array.isArray(path.coordinates)
                 ? (
                   typeof path.coordinates[0] === 'object' && Array.isArray(path.coordinates[0].coordinates)
-                    ? path.coordinates.map(pt => [pt.coordinates[1], pt.coordinates[0]]) // [lng, lat]
+                    ? path.coordinates.map(pt => [pt.coordinates[1], pt.coordinates[0]])
                     : path.coordinates.map(coord => [coord[1], coord[0]])
                 )
                 : []
@@ -143,13 +159,8 @@ const exportMapData = (format = 'geojson') => {
               description: path.description,
               type: path.type,
               timestamp: path.timestamp,
-              pointsMeta: Array.isArray(path.coordinates)
-                ? (
-                  typeof path.coordinates[0] === 'object' && path.coordinates[0].gpsMeta
-                    ? path.coordinates.map(pt => pt.gpsMeta)
-                    : []
-                )
-                : []
+              transportModes: path.transportModes || [],
+              gender: path.gender || '',
             }
           }))
         ]
@@ -160,24 +171,59 @@ const exportMapData = (format = 'geojson') => {
       break;
 
     case 'kml':
-      const kmlHeader = `<?xml …>`;
-      const kmlFooter = `</Document></kml>`;
+      const kmlHeader = `<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2">\n<Document>\n`;
+      const kmlFooter = `</Document>\n</kml>`;
 
+      // Markers as Placemarks
+      const pointsKML = markers.map(marker => {
+        const data = marker.data || {};
+        const tmodes = transportModesToString(data.transportModes);
+        return `
+      <Placemark>
+        <name>${data.name || ''}</name>
+        <description>${data.description || ''}</description>
+        <ExtendedData>
+          <Data name="type"><value>${data.type || ''}</value></Data>
+          <Data name="transportModes"><value>${tmodes}</value></Data>
+          <Data name="gender"><value>${data.gender || ''}</value></Data>
+        </ExtendedData>
+        <Point>
+          <coordinates>${marker.position[1]},${marker.position[0]},0</coordinates>
+        </Point>
+      </Placemark>
+      `;
+      }).join('');
+
+      // Paths as Placemarks
       const pathsKML = paths.map(path => {
-        const coords = flattenCoords(path.coordinates);
+        // flattenCoords from your code
+        const coords = Array.isArray(path.coordinates)
+          ? (
+            typeof path.coordinates[0] === 'object' && Array.isArray(path.coordinates[0].coordinates)
+              ? path.coordinates.map(pt => pt.coordinates)
+              : path.coordinates
+          )
+          : [];
         const coordsStr = coords
           .map(c => `${c[1]},${c[0]},0`)  // always [lng,lat,0]
           .join(' ');
+        const tmodes = transportModesToString(path.transportModes);
         return `
-    <Placemark>
-      <name>${path.name || 'Unnamed Path'}</name>
-      <description>${path.description || ''}</description>
-      <LineString>
-        <coordinates>
-          ${coordsStr}
-        </coordinates>
-      </LineString>
-    </Placemark>`;
+      <Placemark>
+        <name>${path.name || ''}</name>
+        <description>${path.description || ''}</description>
+        <ExtendedData>
+          <Data name="type"><value>${path.type || ''}</value></Data>
+          <Data name="transportModes"><value>${tmodes}</value></Data>
+          <Data name="gender"><value>${path.gender || ''}</value></Data>
+        </ExtendedData>
+        <LineString>
+          <coordinates>
+            ${coordsStr}
+          </coordinates>
+        </LineString>
+      </Placemark>
+      `;
       }).join('');
 
       dataStr = kmlHeader + pointsKML + pathsKML + kmlFooter;
@@ -186,23 +232,51 @@ const exportMapData = (format = 'geojson') => {
       break;
 
     case 'csv':
-      const csvHeaders = 'Type,Name,Description,Latitude,Longitude,Timestamp\n';
-      const markersCSV = markers.map(marker =>
-        `Point,"${marker.data?.name || ''}","${marker.data?.description || ''}",${marker.position[0]},${marker.position[1]},"${marker.timestamp}"`
-      ).join('\n');
-
+      // CSV: Add transportModes and gender for both markers and paths
+      const csvHeaders = 'Type,Name,Description,PathType,TransportModes,Gender,Latitude,Longitude,Timestamp\n';
+      // Markers (POIs)
+      const markersCSV = markers.map(marker => {
+        const data = marker.data || {};
+        return [
+          'Point',
+          `"${data.name || ''}"`,
+          `"${data.description || ''}"`,
+          '', // PathType blank for markers
+          `"${transportModesToString(data.transportModes)}"`,
+          `"${data.gender || ''}"`,
+          marker.position[0],
+          marker.position[1],
+          `"${marker.timestamp}"`
+        ].join(',');
+      }).join('\n');
+      // Paths
       const pathsCSV = paths.map(path => {
-        const coords = flattenCoords(path.coordinates);
-        const [lat, lng] = coords[0] || ['', ''];  // use first point
-        return `Line,"${path.name}","${path.description}",${lat},${lng},"${path.timestamp}"`;
+        // For CSV, just take the first coordinate for lat/lng (for tabular format)
+        const coords = Array.isArray(path.coordinates)
+          ? (
+            typeof path.coordinates[0] === 'object' && Array.isArray(path.coordinates[0].coordinates)
+              ? path.coordinates.map(pt => pt.coordinates)
+              : path.coordinates
+          )
+          : [];
+        const [lat, lng] = coords[0] || ['', ''];
+        return [
+          'Line',
+          `"${path.name || ''}"`,
+          `"${path.description || ''}"`,
+          `"${path.type || ''}"`,
+          `"${transportModesToString(path.transportModes)}"`,
+          `"${path.gender || ''}"`,
+          lat,
+          lng,
+          `"${path.timestamp}"`
+        ].join(',');
       }).join('\n');
 
       dataStr = csvHeaders + markersCSV + (markersCSV && pathsCSV ? '\n' : '') + pathsCSV;
       mimeType = 'text/csv';
       fileExtension = 'csv';
       break;
-
-
 
     default: // JSON
       const exportData = {
@@ -228,6 +302,7 @@ const exportMapData = (format = 'geojson') => {
   document.body.removeChild(linkElement);
   URL.revokeObjectURL(url);
 };
+
 
 // Import Utility
 // replace your existing importMapData with this:

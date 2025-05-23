@@ -9,7 +9,7 @@ lerna-debug.log*
 
 node_modules
 .vite
-github
+.github
 dist
 dist-ssr
 *.local
