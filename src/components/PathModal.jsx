@@ -62,7 +62,7 @@ function PathModal({ onSave, onClose, pathCoordinates }) {
   };
 
   return (
-    <Dialog open={true} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog open={true} onClose={onClose} maxWidth="sm" dir="rtl" fullWidth>
       <DialogTitle sx={{ textAlign: 'center', fontWeight: 'bold' }}>
         ایجاد مسیر جدید
       </DialogTitle>

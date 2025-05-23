@@ -52,7 +52,7 @@ function PolygonModal({ onSave, onClose, polygonCoordinates }) {
 
 
     return (
-        <Dialog open={true} onClose={onClose} maxWidth="sm" fullWidth>
+        <Dialog open={true} onClose={onClose} maxWidth="sm" dir="rtl" fullWidth>
             <DialogTitle sx={{ textAlign: 'center', fontWeight: 'bold' }}>ایجاد محدوده جدید</DialogTitle>
             <DialogContent dividers>
                 {error && <div style={{ color: 'red', marginBottom: 16, textAlign: 'center' }}>{error}</div>}

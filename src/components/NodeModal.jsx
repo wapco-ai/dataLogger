@@ -77,12 +77,12 @@ function NodeModal({ location, gpsMeta, onClose, onSave }) {
   };
 
   return (
-    <Dialog open={true} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog open={true} onClose={onClose} maxWidth="sm" dir="rtl" fullWidth>
       <DialogTitle sx={{ textAlign: 'center', fontWeight: 'bold' }}>
         ایجاد گره جدید
       </DialogTitle>
 
-      <DialogContent dividers>
+      <DialogContent dividers sx={{ direction: "rtl" }}>
         {error && (
           <div style={{ color: 'red', marginBottom: '16px', textAlign: 'center' }}>
             {error}
@@ -96,6 +96,7 @@ function NodeModal({ location, gpsMeta, onClose, onSave }) {
           value={nodeData.name}
           onChange={(e) => handleChange('name', e.target.value)}
           required
+          sx={{ direction: "rtl" }}
         />
 
         <TextField
@@ -106,6 +107,7 @@ function NodeModal({ location, gpsMeta, onClose, onSave }) {
           rows={3}
           value={nodeData.description}
           onChange={(e) => handleChange('description', e.target.value)}
+          sx={{ direction: "rtl" }}
         />
 
         <FormControl fullWidth margin="normal">
