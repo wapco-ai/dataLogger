@@ -47,15 +47,6 @@ const useMarkerStorage = () => {
   };
 };
 
-// helper to flatten any shape:
-function flattenCoords(arr) {
-  if (!Array.isArray(arr)) return [];
-  // arr[0] is either a number-array or an object with .coordinates
-  if (typeof arr[0] === 'object' && Array.isArray(arr[0].coordinates)) {
-    return arr.map(pt => pt.coordinates);
-  }
-  return arr;
-}
 
 // Path Storage Hook
 const usePathStorage = () => {
@@ -104,11 +95,37 @@ const usePathStorage = () => {
   };
 };
 
+const usePolygonStorage = () => {
+  const [polygons, setPolygons] = useState(() => {
+    const saved = localStorage.getItem('mapPolygons');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  useEffect(() => {
+    localStorage.setItem('mapPolygons', JSON.stringify(polygons));
+  }, [polygons]);
+
+  const addPolygon = (newPolygon) => {
+    setPolygons(prev => [
+      ...prev,
+      { ...newPolygon, id: crypto.randomUUID(), timestamp: new Date().toISOString() }
+    ]);
+  };
+  const removePolygon = (polygonId) => {
+    setPolygons(prev => prev.filter(p => p.id !== polygonId));
+  };
+  const updatePolygon = (polygonId, updatedData) => {
+    setPolygons(prev => prev.map(p => p.id === polygonId ? { ...p, ...updatedData } : p));
+  };
+  return { polygons, addPolygon, removePolygon, updatePolygon };
+};
+
 // Export Utility
 // In localStorageHooks.jsx
 const exportMapData = (format = 'geojson') => {
   const markers = JSON.parse(localStorage.getItem('mapMarkers') || '[]');
   const paths = JSON.parse(localStorage.getItem('mapPaths') || '[]');
+  const polygons = JSON.parse(localStorage.getItem('mapPolygons') || '[]');
 
   let dataStr, mimeType, fileExtension;
 
@@ -161,6 +178,22 @@ const exportMapData = (format = 'geojson') => {
               timestamp: path.timestamp,
               transportModes: path.transportModes || [],
               gender: path.gender || '',
+            }
+          })),
+          ...polygons.map(polygon => ({
+            type: 'Feature',
+            geometry: {
+              type: 'Polygon',
+              coordinates: [polygon.coordinates.map(c => [c[1], c[0]])], // GeoJSON polygons: array of LinearRings [lng,lat]
+            },
+            properties: {
+              name: polygon.name,
+              description: polygon.description,
+              type: polygon.type,
+              timestamp: polygon.timestamp,
+              transportModes: polygon.transportModes || [],
+              gender: polygon.gender || '',
+              restrictedTimes: polygon.restrictedTimes || {},
             }
           }))
         ]
@@ -318,10 +351,12 @@ const importMapData = (file) => {
       }
 
       // 1) Your custom JSON format
+      // 1) Your custom JSON format
       if (importedData.version && importedData.markers && importedData.paths) {
         // 1. Read what’s already stored
         const existingMarkers = JSON.parse(localStorage.getItem('mapMarkers') || '[]');
         const existingPaths = JSON.parse(localStorage.getItem('mapPaths') || '[]');
+        const existingPolygons = JSON.parse(localStorage.getItem('mapPolygons') || '[]');
 
         // 2. Assign fresh UUIDs to every imported item
         const newMarkers = importedData.markers.map(m => ({
@@ -332,17 +367,26 @@ const importMapData = (file) => {
           ...p,
           id: crypto.randomUUID()
         }));
+        const newPolygons = Array.isArray(importedData.polygons)
+          ? importedData.polygons.map(pg => ({
+            ...pg,
+            id: crypto.randomUUID()
+          }))
+          : [];
 
         // 3. Merge old + new, then persist
         const mergedMarkers = existingMarkers.concat(newMarkers);
         const mergedPaths = existingPaths.concat(newPaths);
+        const mergedPolygons = existingPolygons.concat(newPolygons);
 
         localStorage.setItem('mapMarkers', JSON.stringify(mergedMarkers));
         localStorage.setItem('mapPaths', JSON.stringify(mergedPaths));
+        localStorage.setItem('mapPolygons', JSON.stringify(mergedPolygons));
 
         // 4. Return merged result so your Map.jsx can optionally update state
-        return resolve({ markers: mergedMarkers, paths: mergedPaths });
+        return resolve({ markers: mergedMarkers, paths: mergedPaths, polygons: mergedPolygons });
       }
+
 
 
       // 2) GeoJSON FeatureCollection
@@ -353,9 +397,11 @@ const importMapData = (file) => {
         // read existing data
         const existingMarkers = JSON.parse(localStorage.getItem('mapMarkers') || '[]');
         const existingPaths = JSON.parse(localStorage.getItem('mapPaths') || '[]');
+        const existingPolygons  = JSON.parse(localStorage.getItem('mapPolygons') || '[]');
 
         const parsedMarkers = [];
         const parsedPaths = [];
+        const parsedPolygons = [];
 
         importedData.features.forEach((feature) => {
           const { geometry, properties = {} } = feature;
@@ -381,17 +427,37 @@ const importMapData = (file) => {
               coordinates: coords,
               timestamp: properties.timestamp || new Date().toISOString()
             });
+          } else if (geometry.type === 'Polygon') {
+            // Expect: coordinates: [ [ [lng, lat], [lng, lat], ... ] ]
+            // We'll convert to [ [lat, lng], ... ]
+            const coords = geometry.coordinates[0].map(([lng, lat]) => [lat, lng]);
+            parsedPolygons.push({
+              id: crypto.randomUUID(),
+              name: properties.name || '',
+              description: properties.description || '',
+              type: properties.type || '',
+              transportModes: properties.transportModes || [],
+              gender: properties.gender || '',
+              coordinates: coords,
+              timestamp: properties.timestamp || new Date().toISOString()
+            });
           }
         });
 
         // merge instead of replace
         const mergedMarkers = existingMarkers.concat(parsedMarkers);
         const mergedPaths = existingPaths.concat(parsedPaths);
+        const mergedPolygons = existingPolygons.concat(parsedPolygons);
 
         localStorage.setItem('mapMarkers', JSON.stringify(mergedMarkers));
         localStorage.setItem('mapPaths', JSON.stringify(mergedPaths));
+        localStorage.setItem('mapPolygons', JSON.stringify(mergedPolygons));
 
-        return resolve({ markers: mergedMarkers, paths: mergedPaths });
+        return resolve({
+          markers: mergedMarkers,
+          paths: mergedPaths,
+          polygons: mergedPolygons
+        });
       }
 
 
@@ -409,6 +475,7 @@ const importMapData = (file) => {
 export {
   useMarkerStorage,
   usePathStorage,
+  usePolygonStorage,
   exportMapData,
   importMapData
 };

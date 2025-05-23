@@ -14,6 +14,11 @@ import 'leaflet/dist/leaflet.css';
 import '../styles/index.css';
 import NodeModal from './NodeModal';
 import PathModal from './PathModal';
+import { Polygon } from 'react-leaflet';
+import PolygonModal from './PolygonModal';
+import FilterModal from './FilterModal';
+import DeletionModal  from './DeletionModal';
+import { usePolygonStorage } from './localStorageHooks';
 import {
   useMarkerStorage,
   usePathStorage,
@@ -26,10 +31,9 @@ import {
   InputLabel,
   MenuItem,
   Select,
-  Box
+  Box,
+  Button
 } from '@mui/material';
-import { right } from '@popperjs/core';
-import { Button } from '@mui/material';
 
 // Custom Marker Icon
 const customMarkerIcon = L.divIcon({
@@ -52,180 +56,6 @@ const customMarkerIcon = L.divIcon({
   iconSize: [30, 30],
   iconAnchor: [15, 15]
 });
-
-// Deletion Modal Component
-const DeletionModal = ({ selectedItem, onDelete, onClose }) => {
-  const renderTransportModes = (modes) => {
-    if (!modes || modes.length === 0) return 'ندارد';
-
-    return modes.map(mode => {
-      switch (mode) {
-        case 'wheelchair': return 'ویلچر';
-        case 'electricVan': return 'ون برقی';
-        case 'walking': return 'پیاده‌روی';
-        default: return mode;
-      }
-    }).join(', ');
-  };
-
-  // New helper:
-  const normalizeCoords = (coordinates) => {
-    if (!Array.isArray(coordinates)) return [];
-    if (Array.isArray(coordinates[0])) return coordinates;
-    return coordinates.map(pt => pt.coordinates || []);
-  };
-
-  // Updated length calculator:
-  const calculatePathLength = (coordinates) => {
-    const pts = normalizeCoords(coordinates);
-    if (pts.length < 2) return 0;
-    let totalDistance = 0;
-    for (let i = 1; i < pts.length; i++) {
-      const [lat1, lng1] = pts[i - 1];
-      const [lat2, lng2] = pts[i];
-      totalDistance += L.latLng(lat1, lng1)
-        .distanceTo(L.latLng(lat2, lng2));
-    }
-    return (totalDistance / 1000).toFixed(2);
-  };
-
-  return (
-    <div style={{
-      position: 'fixed',
-      top: '50%',
-      left: '50%',
-      transform: 'translate(-50%, -50%)',
-      backgroundColor: 'white',
-      padding: '20px',
-      borderRadius: '10px',
-      boxShadow: '0 4px 15px rgba(0,0,0,0.2)',
-      width: '90%',
-      maxWidth: '400px',
-      maxHeight: '80vh',
-      overflowY: 'auto',
-      zIndex: 1000
-    }}>
-      <h2 style={{
-        marginBottom: '15px',
-        textAlign: 'center',
-        color: '#333'
-      }}>
-        جزئیات {selectedItem.type === 'marker' ? 'نشانگر' : 'مسیر'}
-      </h2>
-      {/* Common Details */}
-      <div style={{
-        backgroundColor: '#f4f4f4',
-        padding: '15px',
-        borderRadius: '8px',
-        marginBottom: '15px'
-      }}>
-        <p>
-          <strong>نام:</strong> {selectedItem.item.data?.name || selectedItem.item.name || 'بدون نام'}
-        </p>
-        <p>
-          <strong>توضیحات:</strong> {selectedItem.item.data?.description || selectedItem.item.description || 'بدون توضیحات'}
-        </p>
-      </div>
-
-      {/* Marker-Specific Details */}
-      {selectedItem.type === 'marker' && (
-        <div style={{
-          backgroundColor: '#e9f5e9',
-          padding: '15px',
-          borderRadius: '8px',
-          marginBottom: '15px'
-        }}>
-          <p>
-            <strong>نوع نشانگر:</strong> {selectedItem.item.data?.type || 'نامشخص'}
-          </p>
-          <p>
-            <strong>شیوه‌های حمل و نقل:</strong> {renderTransportModes(selectedItem.item.data?.transportModes)}
-          </p>
-          <p>
-            <strong>جنسیت تردد:</strong>
-            {selectedItem.item.data?.gender === 'male' ? 'مردانه' :
-              selectedItem.item.data?.gender === 'female' ? 'زنانه' :
-                selectedItem.item.data?.gender === 'family' ? 'خانوادگی' : 'نامشخص'}
-          </p>
-          <p>
-            <strong>موقعیت مکانی:</strong>
-            {`${selectedItem.item.position[0].toFixed(4)}, ${selectedItem.item.position[1].toFixed(4)}`}
-          </p>
-        </div>
-      )}
-
-      {/* Path-Specific Details */}
-      {selectedItem.type === 'path' && (
-        <div style={{
-          backgroundColor: '#e6f2ff',
-          padding: '15px',
-          borderRadius: '8px',
-          marginBottom: '15px'
-        }}>
-          <p>
-            <strong>نوع مسیر:</strong> {selectedItem.item.type || 'نامشخص'}
-          </p>
-          <p>
-            <strong>طول مسیر:</strong> {calculatePathLength(selectedItem.item.coordinates)} کیلومتر
-          </p>
-          <p>
-            <strong>تعداد نقاط مسیر:</strong> {selectedItem.item.coordinates?.length || 0}
-          </p>
-          <p>
-            <strong>تاریخ ایجاد:</strong> {new Date(selectedItem.item.timestamp).toLocaleDateString('fa-IR')}
-          </p>
-          <p>
-            <strong>دقت GPS:</strong>
-            {selectedItem.item.gpsMeta?.coords?.accuracy
-              ? `${selectedItem.item.gpsMeta.coords.accuracy} متر`
-              : 'اطلاعات موجود نیست'}
-          </p>
-        </div>
-      )}
-
-      {/* Deletion Confirmation Buttons */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        marginTop: '15px'
-      }}>
-        <button
-          onClick={onDelete}
-          style={{
-            backgroundColor: '#dc3545',
-            color: 'white',
-            border: 'none',
-            padding: '10px 20px',
-            borderRadius: '5px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px'
-          }}
-        >
-          <span>🗑️</span> بله، حذف شود
-        </button>
-        <button
-          onClick={onClose}
-          style={{
-            backgroundColor: '#6c757d',
-            color: 'white',
-            border: 'none',
-            padding: '10px 20px',
-            borderRadius: '5px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px'
-          }}
-        >
-          <span>✖</span> انصراف
-        </button>
-      </div>
-    </div>
-  )
-}
-
-
-
 
 
 // Map Click Event Component
@@ -251,75 +81,6 @@ function RecenterMap({ position, zoom }) {
   return null;
 }
 
-// Filter Modal Component
-function FilterModal({ isOpen, onClose, filterOptions, setFilterOptions }) {
-  if (!isOpen) return null;
-
-  const toggleOption = (category, option) => {
-    setFilterOptions(prev => {
-      const currentOptions = prev[category] || [];
-      const newOptions = currentOptions.includes(option)
-        ? currentOptions.filter(item => item !== option)
-        : [...currentOptions, option];
-
-      return { ...prev, [category]: newOptions };
-    });
-  };
-
-  return (
-    <div style={{
-      position: 'fixed',
-      top: '50%',
-      left: '50%',
-      transform: 'translate(-50%, -50%)',
-      backgroundColor: 'white',
-      padding: '20px',
-      borderRadius: '10px',
-      boxShadow: '0 4px 15px rgba(0,0,0,0.2)',
-      zIndex: 1000,
-      width: '90%',
-      maxWidth: '400px'
-    }}>
-      <h2>فیلترسازی</h2>
-
-      <div>
-        <h3>نوع نشانگر</h3>
-        {['checkpoint', 'landmark', 'poi', 'other'].map(type => (
-          <label key={type}>
-            <input
-              type="checkbox"
-              checked={filterOptions.markerTypes.includes(type)}
-              onChange={() => toggleOption('markerTypes', type)}
-            />
-            {type === 'checkpoint' && 'نقطه بازرسی'}
-            {type === 'landmark' && 'نشانه'}
-            {type === 'poi' && 'نقطه دلخواه'}
-            {type === 'other' && 'سایر'}
-          </label>
-        ))}
-      </div>
-
-      <div>
-        <h3>نوع مسیر</h3>
-        {['hiking', 'driving', 'other'].map(type => (
-          <label key={type}>
-            <input
-              type="checkbox"
-              checked={filterOptions.pathTypes.includes(type)}
-              onChange={() => toggleOption('pathTypes', type)}
-            />
-            {type === 'hiking' && 'پیاده‌روی'}
-            {type === 'driving' && 'رانندگی'}
-            {type === 'other' && 'سایر'}
-          </label>
-        ))}
-      </div>
-
-      <button onClick={onClose}>بستن</button>
-    </div>
-  );
-}
-
 const Map = () => {
   // State management
   const [position, setPosition] = useState([36.2972, 59.6067]);
@@ -340,6 +101,11 @@ const Map = () => {
   const [manualPathPoints, setManualPathPoints] = useState([]);
   const [gpsMetaPoints, setGpsMetaPoints] = useState([]);
   const [modalMode, setModalMode] = useState(null); // 'gps' or 'manual'
+  const [isDrawingPolygon, setIsDrawingPolygon] = useState(false);
+  const [polygonPoints, setPolygonPoints] = useState([]);
+  const [showPolygonModal, setShowPolygonModal] = useState(false);
+  const blockNextMapClickRef = useRef(false);
+  const { polygons, addPolygon, removePolygon } = usePolygonStorage();
 
 
 
@@ -435,6 +201,7 @@ const Map = () => {
   const finishManualPath = () => {
     // setIsDrawingPath(false);
     if (manualPathPoints.length > 1) {
+      setIsDrawingPath(false);              // <--- Add this line
       setModalMode('manual');
       setShowPathModal(true);
     } else {
@@ -442,6 +209,28 @@ const Map = () => {
     }
   };
   const pathCoordinatesRef = useRef(pathCoordinates);
+
+  const startDrawingPolygon = () => {
+    setIsDrawingPolygon(true);
+    setPolygonPoints([]);
+  };
+
+  // Button to finish polygon:
+  const finishPolygon = () => {
+    if (polygonPoints.length >= 3) {
+      setIsDrawingPolygon(false);           // <--- Add this line
+      setShowPolygonModal(true);
+    } else {
+      alert('حداقل سه نقطه نیاز است.');
+    }
+  };
+  // On save in modal:
+  const handleSavePolygon = (polygonData) => {
+    addPolygon(polygonData);
+    setShowPolygonModal(false);
+    setPolygonPoints([]);
+    setIsDrawingPolygon(false);
+  };
 
   useEffect(() => {
     pathCoordinatesRef.current = pathCoordinates;
@@ -569,6 +358,8 @@ const Map = () => {
         removeMarker(item.id);
       } else if (type === 'path') {
         removePath(item.id);
+      } else if (type === 'polygon') {
+        removePolygon(item.id);   // <--- ADD THIS LINE
       }
 
       setSelectedItemForDeletion(null);
@@ -592,10 +383,32 @@ const Map = () => {
     setupGeolocation();
   }, [setupGeolocation]);
 
-  // Map Click Handler
+
   const handleMapClick = (latlng) => {
+    // 1. Block the next click after a feature/modal click
+    if (blockNextMapClickRef.current) {
+      blockNextMapClickRef.current = false;
+      return;
+    }
+
+    // 2. If any modal is open, do nothing
+    if (
+      selectedItemForDeletion ||
+      showPolygonModal ||
+      showPathModal ||
+      selectedLocation // <-- prevents opening multiple NodeModals!
+    ) {
+      return;
+    }
+
+    // 3. Add point if in polygon drawing mode
+    if (isDrawingPolygon) {
+      setPolygonPoints(prev => [...prev, [latlng.lat, latlng.lng]]);
+      return;
+    }
+
+    // 4. Add point if in manual path drawing mode
     if (isDrawingPath) {
-      // Use current lastGpsData
       setManualPathPoints(prev => [
         ...prev,
         {
@@ -606,13 +419,17 @@ const Map = () => {
           } : null
         }
       ]);
-    } else {
-      setSelectedLocation({
-        lat: latlng.lat,
-        lng: latlng.lng
-      });
+      return;
     }
+
+    // 5. Otherwise, open NodeModal (add marker modal)
+    setSelectedLocation({
+      lat: latlng.lat,
+      lng: latlng.lng
+    });
   };
+
+
 
   // Node Modal Handler
   const handleSaveNode = (nodeData) => {
@@ -632,14 +449,16 @@ const Map = () => {
     const file = event.target.files[0];
     if (file) {
       importMapData(file)
-        .then(({ markers: newMarkers, paths: newPaths }) => {
+        .then(({ markers: newMarkers, paths: newPaths, polygons: newPolygons }) => {
           // 1) clear current state
           markers.forEach(m => removeMarker(m.id));
           paths.forEach(p => removePath(p.id));
+          polygons.forEach(pg => removePolygon(pg.id));
 
           // 2) add merged data back
           newMarkers.forEach(m => addMarker(m));
           newPaths.forEach(p => addPath(p));
+          newPolygons && newPolygons.forEach(pg => addPolygon(pg));
 
           alert('اطلاعات با موفقیت وارد شد!');
         })
@@ -834,6 +653,42 @@ const Map = () => {
           />
         )}
 
+        {isDrawingPolygon && polygonPoints.length > 1 && (
+          <Polygon
+            positions={polygonPoints}
+            pathOptions={{ color: 'purple', fillOpacity: 0.2 }}
+          />
+        )}
+
+        {polygons.map(polygon => (
+          <Polygon
+            key={polygon.id}
+            positions={polygon.coordinates}
+            pathOptions={{ color: 'purple', fillOpacity: 0.2 }}
+            eventHandlers={{
+              click: (e) => {
+                // Stop event propagation to prevent map click handler
+                if (e.originalEvent && e.originalEvent.stopPropagation) {
+                  e.originalEvent.stopPropagation();
+                }
+                blockNextMapClickRef.current = true;
+                setSelectedItemForDeletion({
+                  type: 'polygon',
+                  item: polygon,
+                });
+              }
+            }}
+          />
+        ))}
+
+        {showPolygonModal && (
+          <PolygonModal
+            onSave={handleSavePolygon}
+            onClose={() => setShowPolygonModal(false)}
+            polygonCoordinates={polygonPoints}
+          />
+        )}
+
         {/* Dynamic Markers */}
         {filteredMarkers.map((marker) => (
           <Marker
@@ -896,6 +751,8 @@ const Map = () => {
         onFilter={() => setShowFilterModal(true)}
         onStartManualPath={startManualPath}
         isDrawingPath={isDrawingPath}
+        onStartPolygon={startDrawingPolygon}
+        isDrawingPolygon={isDrawingPolygon}
       />
 
       {isDrawingPath && (
@@ -906,6 +763,18 @@ const Map = () => {
           style={{ position: "fixed", bottom: 70, right: 20, zIndex: 9999 }}
         >
           پایان مسیر و ذخیره
+        </Button>
+      )}
+
+
+      {isDrawingPolygon && polygonPoints.length >= 3 && (
+        <Button
+          onClick={finishPolygon}
+          variant="contained"
+          color="success"
+          style={{ position: "fixed", bottom: 70, right: 90, zIndex: 9999 }}
+        >
+          پایان محدوده و ذخیره
         </Button>
       )}
 
