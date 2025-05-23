@@ -259,7 +259,41 @@ const exportMapData = (format = 'geojson') => {
       `;
       }).join('');
 
-      dataStr = kmlHeader + pointsKML + pathsKML + kmlFooter;
+      const polygonsKML = polygons.map(polygon => {
+        const tmodes = transportModesToString(polygon.transportModes);
+        // KML expects: coordinates="lng,lat,0 lng,lat,0 ..."
+        // And polygons must be "closed" (first == last point)
+        let coords = Array.isArray(polygon.coordinates) ? polygon.coordinates.slice() : [];
+        if (coords.length && (coords[0][0] !== coords[coords.length - 1][0] || coords[0][1] !== coords[coords.length - 1][1])) {
+          coords.push(coords[0]); // Ensure closed ring
+        }
+        const coordsStr = coords
+          .map(c => `${c[1]},${c[0]},0`) // always [lng,lat,0]
+          .join(' ');
+        return `
+    <Placemark>
+      <name>${polygon.name || ''}</name>
+      <description>${polygon.description || ''}</description>
+      <ExtendedData>
+        <Data name="type"><value>${polygon.type || ''}</value></Data>
+        <Data name="transportModes"><value>${tmodes}</value></Data>
+        <Data name="gender"><value>${polygon.gender || ''}</value></Data>
+        <Data name="restrictedTimes"><value>${polygon.restrictedTimes ? JSON.stringify(polygon.restrictedTimes) : ''}</value></Data>
+      </ExtendedData>
+      <Polygon>
+        <outerBoundaryIs>
+          <LinearRing>
+            <coordinates>
+              ${coordsStr}
+            </coordinates>
+          </LinearRing>
+        </outerBoundaryIs>
+      </Polygon>
+    </Placemark>
+  `;
+      }).join('');
+
+      dataStr = kmlHeader + pointsKML + pathsKML + polygonsKML + kmlFooter;
       mimeType = 'application/vnd.google-earth.kml+xml';
       fileExtension = 'kml';
       break;
@@ -306,7 +340,29 @@ const exportMapData = (format = 'geojson') => {
         ].join(',');
       }).join('\n');
 
-      dataStr = csvHeaders + markersCSV + (markersCSV && pathsCSV ? '\n' : '') + pathsCSV;
+      const polygonsCSV = polygons.map(polygon => {
+        // Use the first coordinate for lat/lng (for display purposes)
+        const coords = Array.isArray(polygon.coordinates) ? polygon.coordinates : [];
+        const [lat, lng] = coords[0] || ['', ''];
+        return [
+          'Polygon',
+          `"${polygon.name || ''}"`,
+          `"${polygon.description || ''}"`,
+          `"${polygon.type || ''}"`,
+          `"${transportModesToString(polygon.transportModes)}"`,
+          `"${polygon.gender || ''}"`,
+          `"${polygon.restrictedTimes ? JSON.stringify(polygon.restrictedTimes) : ''}"`,
+          lat,
+          lng,
+          `"${polygon.timestamp || ''}"`
+        ].join(',');
+      }).join('\n');
+
+
+      dataStr = csvHeaders +
+        markersCSV + (markersCSV && (pathsCSV || polygonsCSV) ? '\n' : '') +
+        pathsCSV + (pathsCSV && polygonsCSV ? '\n' : '') +
+        polygonsCSV;
       mimeType = 'text/csv';
       fileExtension = 'csv';
       break;
@@ -397,7 +453,7 @@ const importMapData = (file) => {
         // read existing data
         const existingMarkers = JSON.parse(localStorage.getItem('mapMarkers') || '[]');
         const existingPaths = JSON.parse(localStorage.getItem('mapPaths') || '[]');
-        const existingPolygons  = JSON.parse(localStorage.getItem('mapPolygons') || '[]');
+        const existingPolygons = JSON.parse(localStorage.getItem('mapPolygons') || '[]');
 
         const parsedMarkers = [];
         const parsedPaths = [];
