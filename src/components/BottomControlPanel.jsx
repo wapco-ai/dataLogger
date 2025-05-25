@@ -190,7 +190,7 @@ export default function BottomControlPanel({
             left: 0,
             right: 0,
             bottom: 0,
-            height: panelMode === 'full' ? '100vh' : '25vh',
+            height: panelMode === 'full' ? '100dvh' : '25vh',
             borderTopLeftRadius: 24,
             borderTopRightRadius: 24,
             zIndex: 20000,
