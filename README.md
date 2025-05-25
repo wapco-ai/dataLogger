@@ -27,7 +27,7 @@ Built with:
 1. **Clone the repository**
 
    ```bash
-   git clone https://github.com/yourusername/dataLogger.git
+   git clone https://github.com/wapco-ai/dataLogger.git
    cd dataLogger
    ```
 
