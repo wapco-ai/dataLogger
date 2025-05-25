@@ -17,7 +17,7 @@ import PathModal from './PathModal';
 import { Polygon } from 'react-leaflet';
 import PolygonModal from './PolygonModal';
 import FilterModal from './FilterModal';
-import DeletionModal  from './DeletionModal';
+import DeletionModal from './DeletionModal';
 import { usePolygonStorage } from './localStorageHooks';
 import {
   useMarkerStorage,
@@ -106,7 +106,7 @@ const Map = () => {
   const [showPolygonModal, setShowPolygonModal] = useState(false);
   const blockNextMapClickRef = useRef(false);
   const { polygons, addPolygon, removePolygon } = usePolygonStorage();
-
+  const [drPanelOpen, setDrPanelOpen] = useState(false);
 
 
   const handleExport = (format = 'json') => {
@@ -518,7 +518,7 @@ const Map = () => {
           backgroundColor: '#ffffffee',
           padding: '10px',
           borderRadius: '8px',
-          zIndex: 1200,
+          zIndex: drPanelOpen ? 500 : 1200,
           boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
           direction: 'rtl',
           minWidth: '180px'
@@ -753,6 +753,7 @@ const Map = () => {
         isDrawingPath={isDrawingPath}
         onStartPolygon={startDrawingPolygon}
         isDrawingPolygon={isDrawingPolygon}
+        onPanelToggle={setDrPanelOpen}
       />
 
       {isDrawingPath && (

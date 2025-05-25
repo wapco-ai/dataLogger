@@ -12,7 +12,8 @@ import {
   Menu,
   MenuItem,
   ListItemIcon,
-  ListItemText
+  ListItemText,
+  Slide, Paper
 } from '@mui/material';
 import {
   PlayArrow,
@@ -23,7 +24,7 @@ import {
   FileUpload,
   Layers,
   Gesture,
-  Map as MapIcon,
+  Map as MapIco,
   Draw as DrawIcon,
   CropFree,
   Polyline
@@ -33,6 +34,11 @@ import DrawOutlinedIcon from '@mui/icons-material/DrawOutlined';
 import FilterAltOutlinedIcon from '@mui/icons-material/FilterAltOutlined';
 import FileUploadOutlinedIcon from '@mui/icons-material/FileUploadOutlined';
 import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
+import DualTrackingTest from "./DualTrackingTest";
+import MapIcon from '@mui/icons-material/Map'; // Use your preferred icon
+import HomeMaxIcon from '@mui/icons-material/HomeMax';
+import MinimizeIcon from '@mui/icons-material/Minimize';
+import ExploreIcon from '@mui/icons-material/Explore';
 
 export default function BottomControlPanel({
   isTracking,
@@ -42,10 +48,11 @@ export default function BottomControlPanel({
   onExport,
   onImportClick,
   onFilter,
-  onStartManualPath, 
+  onStartManualPath,
   isDrawingPath,
   onStartPolygon,        // <-- ADD THIS
-  isDrawingPolygon       // <-- AND THIS
+  isDrawingPolygon,
+  onPanelToggle
 }) {
   const theme = useTheme();
   const isXs = useMediaQuery(theme.breakpoints.down('sm'));
@@ -61,8 +68,24 @@ export default function BottomControlPanel({
       onExport(format);
     }
   };
+  const [showDualTracking, setShowDualTracking] = useState(false);
+  const [panelMode, setPanelMode] = useState('closed'); // 'full' | 'compact' | 'closed'
+  const isOpen = panelMode !== 'closed';
+
+  const toggleMode = () => {
+    const newMode = panelMode === 'full' ? 'compact' : 'full';
+    setPanelMode(newMode);
+    if (onPanelToggle) onPanelToggle(true);
+  };
+
+  const closePanel = () => {
+    setPanelMode('closed');
+    if (onPanelToggle) onPanelToggle(false);
+  };
+
 
   return (
+
     <AppBar position="fixed" color="inherit" sx={{ top: 'auto', bottom: 0 }}>
       <Toolbar sx={{ justifyContent: 'space-around' }}>
         <Tooltip title={isTracking ? "توقف ردیابی" : "شروع ردیابی"} arrow>
@@ -142,7 +165,65 @@ export default function BottomControlPanel({
             <FileUploadOutlinedIcon />
           </IconButton>
         </Tooltip>
+
+        <Tooltip title="تست مسیر GPS/DR" arrow>
+          <IconButton
+            color="info"
+            onClick={() => {
+              setPanelMode('full');
+              if (onPanelToggle) onPanelToggle(true);
+            }}
+            size="large"
+          >
+            <ExploreIcon />
+          </IconButton>
+        </Tooltip>
+
       </Toolbar>
+
+      {/* ======= PLACE THE SLIDE PANEL CODE HERE ======= */}
+      <Slide direction="up" in={isOpen} mountOnEnter unmountOnExit>
+        <Paper
+          elevation={20}
+          sx={{
+            position: "fixed",
+            left: 0,
+            right: 0,
+            bottom: 0,
+            height: panelMode === 'full' ? '100vh' : '25vh',
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
+            zIndex: 20000,
+            bgcolor: "background.paper",
+            boxShadow: 16,
+            display: "flex",
+            flexDirection: "column", // IMPORTANT
+            pt: 1,
+            pb: 1,
+          }}
+        >
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", px: 2 }}>
+            <Tooltip title="بستن">
+              <IconButton onClick={closePanel}>×</IconButton>
+            </Tooltip>
+            <Typography sx={{ fontWeight: "bold", fontSize: "16px" }}>
+              تست مسیر GPS/DR
+            </Typography>
+            <Tooltip title={panelMode === 'full' ? "حالت کوچک" : "تمام صفحه"}>
+              <IconButton onClick={toggleMode}>
+                {panelMode === 'full' ? <MinimizeIcon /> : <HomeMaxIcon />}
+              </IconButton>
+            </Tooltip>
+          </Box>
+
+          {/* Inner Content */}
+          <Box sx={{ flex: 1, minHeight: 0, px: 2, pb: 2 }}>
+            <DualTrackingTest mode={panelMode}/>
+          </Box>
+
+        </Paper>
+      </Slide>
+
     </AppBar>
   );
 }

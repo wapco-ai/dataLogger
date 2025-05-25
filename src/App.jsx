@@ -3,7 +3,8 @@ import React, { useState } from 'react'
 import { ThemeProvider } from '@mui/material/styles';
 import theme from './theme';
 import Map from './components/Map'
-import NodeModal from './components/NodeModal'
+// import NodeModal from './components/NodeModal'
+
 
 function App() {
   const [isNodeModalOpen, setIsNodeModalOpen] = useState(false)
@@ -38,12 +39,12 @@ function App() {
         />
         </ThemeProvider>
 
-      {isNodeModalOpen && (
+      {/* {isNodeModalOpen && (
         <NodeModal
           location={selectedLocation}
           onClose={handleCloseModal}
         />
-      )}
+      )} */}
     </div>
   )
 }
