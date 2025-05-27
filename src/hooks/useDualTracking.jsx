@@ -4,12 +4,12 @@ import { useState, useRef, useEffect } from "react";
 function moveLatLng({ latitude, longitude }, headingDeg, distanceMeters) {
   const R = 6378137; // Earth radius in meters
   const dRad = headingDeg * (Math.PI / 180);
-  const newLat = latitude + (distanceMeters * Math.cos(dRad)) / R * (180 / Math.PI);
+  const newLat = latitude(distanceMeters * Math.cos(dRad)) / R * (180 / Math.PI);
   const newLng =
-    longitude +
-    (distanceMeters * Math.sin(dRad)) /
-      (R * Math.cos(latitude * Math.PI / 180)) *
-      (180 / Math.PI);
+    longitude
+      (distanceMeters * Math.sin(dRad)) /
+    (R * Math.cos(latitude * Math.PI / 180)) *
+    (180 / Math.PI);
   return { latitude: newLat, longitude: newLng };
 }
 
@@ -52,7 +52,14 @@ export function useDualTracking() {
               ? speed
               : 1; // default to 1 m/s if not available
           const moved = usedSpeed * dt; // meters
-          dr = moveLatLng(dr, headingRef.current, moved);
+          // dr = moveLatLng(dr, headingRef.current, moved);
+          const invertedHeading = (360 - headingRef.current) % 360;
+          dr = moveLatLng(dr, invertedHeading, moved);
+
+          // const gpsHeading =
+          //   typeof heading === "number" && !isNaN(heading) ? heading : null;
+          // const finalHeading = gpsHeading !== null ? gpsHeading : deviceHeading;
+          // dr = moveLatLng(dr, finalHeading, moved);
         }
 
         lastDrRef.current = dr;
