@@ -54,9 +54,9 @@ export function useDualTracking() {
               ? speed
               : 1; // default to 1 m/s if not available
           const moved = usedSpeed * dt; // meters
-          dr = moveLatLng(dr, headingRef.current, moved);
-          // const invertedHeading = (360 - headingRef.current) % 360;
-          // dr = moveLatLng(dr, invertedHeading, moved);
+          // dr = moveLatLng(dr, headingRef.current, moved);
+          const invertedHeading = (360 - headingRef.current) % 360;
+          dr = moveLatLng(dr, invertedHeading, moved);
           console.log("DR in:", dr, typeof dr.latitude, typeof dr.longitude);
 
           // dr = moveLatLng(
