@@ -74,13 +74,16 @@ function AutoRecenter({ gps, dr, mode }) {
     return null;
 }
 
-export default function DualTrackingTest({ mode }) {
-    const { tracking, points, start, stop } = useDualTracking();
+export default function DualTrackingTest({ mode, actions, mapHeight }) {
+    // wrap the hook’s start so we can also flip followMode → 'gps'
+    const { tracking, points, start: hookStart, stop } = useDualTracking();
+    const start = () => { hookStart(); setFollowMode("gps"); };
     const lastGps = points.length ? points[points.length - 1].gps : null;
     const lastDr = points.length ? points[points.length - 1].dr : null;
     const gpsPath = toLatLngArr(points, "gps");
     const drPath = toLatLngArr(points, "dr");
-    const [followMode, setFollowMode] = useState("off");
+    // in mapOnly mode we want to always follow GPS
+    const [followMode, setFollowMode] = useState(mode === "mapOnly" ? "gps" : "off");
     const [initialGps, setInitialGps] = useState(null);
     const [pendingZoomTarget, setPendingZoomTarget] = useState(null);
     const mapRef = useRef(null);
@@ -115,7 +118,18 @@ export default function DualTrackingTest({ mode }) {
             firstZoomed.current = false;
         }
     }, [mode, lastGps, initialGps]);
-
+    
+// compact = render *only* the controls passed via `actions(...)`
+    // if (mode === "compact" && typeof actions === "function") {
+    //     return actions({
+    //       tracking,
+    //       points,
+    //       start,
+    //       stop,
+    //       exportDualCSV,
+    //       exportDualGeoJSON
+    //     });
+    // }
 
     return (
         <Box sx={{ height: "100%", display: "flex", flexDirection: "column", direction: "rtl" }}>
@@ -152,7 +166,17 @@ export default function DualTrackingTest({ mode }) {
                     center={gpsPath.length ? gpsPath[gpsPath.length - 1] : [36.2972, 59.6067]}
                     zoom={16}
                     style={{ height: "100%", width: "100%" }}
-                    whenCreated={(mapInstance) => mapRef.current = mapInstance}
+                    whenCreated={(mapInstance) => {
+                        mapRef.current = mapInstance;
+                        // **initial GPS zoom** when modal opens
+                        if (mode !== "compact") {
+                            navigator.geolocation.getCurrentPosition(
+                              (pos) => mapInstance.setView([pos.coords.latitude, pos.coords.longitude], 17),
+                              (err) => console.warn("Failed to fetch initial GPS:", err),
+                              { enableHighAccuracy: true }
+                            );
+                        }
+                    }}
                 >
                     <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                     <Polyline positions={gpsPath} color="blue" weight={5} opacity={0.7} />
