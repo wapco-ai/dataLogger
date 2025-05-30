@@ -7,7 +7,8 @@ import {
   Polyline,
   Circle,
   useMapEvents,
-  useMap
+  useMap,
+  CircleMarker
 } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -35,6 +36,15 @@ import {
   Button
 } from '@mui/material';
 
+// Center-pin icon for manual marker mode
+const centerIcon = L.divIcon({
+  className: 'center-marker-icon',
+  html: '<div class="center-pin">📍</div>',
+  iconSize: [20, 26],   // ← width 24, height ~30
+  iconAnchor: [10, 26],   // ← bottom-center = 12px across, 30px down
+  popupAnchor: [0, -26]
+});
+
 // Custom Marker Icon
 const customMarkerIcon = L.divIcon({
   className: 'custom-marker-icon',
@@ -57,12 +67,89 @@ const customMarkerIcon = L.divIcon({
   iconAnchor: [15, 15]
 });
 
+function NoPopupMarker({ position, children, ...props }) {
+  const markerRef = useRef(null);
+
+  useEffect(() => {
+    const marker = markerRef.current;
+    if (marker) {
+      // Remove the click‐to‐open handler that Leaflet adds when you nest <Popup>
+      marker.off('click');                 // ⇐ removes openPopup listener
+      // (Optionally) leave your own click handler:
+      marker.on('click', () => props.onClick && props.onClick());
+    }
+  }, [props]);
+
+  return (
+    <Marker
+      ref={markerRef}
+      position={position}
+      {...props}
+    >
+      <Popup>{children}</Popup>  {/* still in JSX, but won’t open on click */}
+    </Marker>
+  );
+}
+
+
+// pick a color for each category
+const categoryColors = {
+  checkpoint: '#e53935', // red
+  landmark: '#1e88e5', // blue
+  poi: '#fb8c00', // orange
+  other: '#6d4c41', // brown
+};
+
+// factory to build a 30×30px circle icon, lettered by type
+function getMarkerIcon(type) {
+  const color = categoryColors[type] || '#757575'; // grey fallback
+  const letter = type ? type[0].toUpperCase() : '';
+  return L.divIcon({
+    className: 'category-marker-icon',
+    html: `
+      <div style="
+        width:30px; height:30px;
+        background:${color};
+        border-radius:50%;
+        display:flex; align-items:center; justify-content:center;
+        color:white; font-size:16px; font-weight:bold;
+        box-shadow:0 2px 5px rgba(0,0,0,0.3);
+      ">${letter}</div>
+    `,
+    iconSize: [30, 30],
+    iconAnchor: [15, 15],  // bottom‐center of the circle
+  });
+}
+
+
+// Component to listen for map drag/zoom and report center
+function ManualMarkerOverlay({ onPositionChange }) {
+  const map = useMap();
+
+  // 1) Seed the centerPos immediately on mount:
+  useEffect(() => {
+    onPositionChange(map.getCenter());
+    // we only want to run this once
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // 2) Update on subsequent pans/zooms:
+  useMapEvents({
+    dragend: () => onPositionChange(map.getCenter()),
+    zoomend: () => onPositionChange(map.getCenter()),
+  });
+
+  return null;
+}
+
+
+
 
 // Map Click Event Component
-function MapClickHandler({ onMapClick }) {
+function MapClickHandler({ onMapClick, manualMode }) {
   useMapEvents({
     click: (e) => {
-      onMapClick(e.latlng);
+      if (!manualMode) onMapClick(e.latlng);
     }
   });
   return null;
@@ -80,6 +167,7 @@ function RecenterMap({ position, zoom }) {
 
   return null;
 }
+
 
 const Map = () => {
   // State management
@@ -108,6 +196,13 @@ const Map = () => {
   const { polygons, addPolygon, removePolygon } = usePolygonStorage();
   const [drPanelOpen, setDrPanelOpen] = useState(false);
 
+  const [clickPos, setClickPos] = useState(null);
+
+
+  // NEW: Manual marker mode
+  const [manualMarkerMode, setManualMarkerMode] = useState(false);
+  const [centerPos, setCenterPos] = useState(null);
+
 
   const handleExport = (format = 'json') => {
     exportMapData(format); // Make sure this uses the enhanced export function we created earlier
@@ -120,26 +215,26 @@ const Map = () => {
     gender: []
   });
 
+
+  const layerLabels = {
+    street: 'Street View',
+    esri: 'Esri World Imagery',
+    // maptiler: 'MapTiler Satellite',
+    eox: 'EOX S2 Cloudless 2020'
+  };
   const layers = {
-    street: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-    satellite: "https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2020_3857/default/g/{z}/{y}/{x}.jpg",
+    street: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    esri: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    // maptiler: 'https://api.maptiler.com/tiles/satellite/{z}/{x}/{y}.jpg?key=PAu3bNqx2yRLCogX8Zb0',
+    eox: "https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2020_3857/default/g/{z}/{y}/{x}.jpg",
   };
 
 
-  // Storage Hooks
-  const {
-    markers,
-    addMarker,
-    removeMarker,
-    updateMarker
-  } = useMarkerStorage();
 
-  const {
-    paths,
-    addPath,
-    removePath,
-    updatePath
-  } = usePathStorage();
+  // Storage hooks
+  const { markers, addMarker, removeMarker } = useMarkerStorage();
+  const { paths, addPath, removePath } = usePathStorage();
+  // const { polygons, addPolygon, removePolygon } = usePolygonStorage();
 
   // Refs for tracking
   const watchIdRef = useRef(null);
@@ -384,7 +479,30 @@ const Map = () => {
   }, [setupGeolocation]);
 
 
+  // Manual marker controls
+  const startManualMarker = () => {
+    setManualMarkerMode(true);
+    setCenterPos(null);
+  };
+  const finishManualMarker = () => {
+    if (centerPos) {
+      setManualMarkerMode(false);
+      setSelectedLocation({ lat: centerPos.lat, lng: centerPos.lng });
+    } else {
+      setLocationError('لطفاً جایگاه را تنظیم کنید');
+    }
+  };
+  const cancelManualMarker = () => {
+    setManualMarkerMode(false);
+    setCenterPos(null);
+  };
+
+  // Map click handler
   const handleMapClick = (latlng) => {
+
+    // ignore clicks during manual marker mode
+    if (manualMarkerMode) return;
+
     // 1. Block the next click after a feature/modal click
     if (blockNextMapClickRef.current) {
       blockNextMapClickRef.current = false;
@@ -421,6 +539,8 @@ const Map = () => {
       ]);
       return;
     }
+
+    setClickPos(latlng);
 
     // 5. Otherwise, open NodeModal (add marker modal)
     setSelectedLocation({
@@ -509,7 +629,7 @@ const Map = () => {
   };
 
   return (
-    <div className="map-container">
+    <div className={`map-container ${manualMarkerMode ? 'manual-marker-mode' : ''}`}>
       <Box
         sx={{
           position: 'absolute',
@@ -533,8 +653,11 @@ const Map = () => {
             label="نقشه پایه"
             onChange={(e) => setMapLayer(e.target.value)}
           >
-            <MenuItem value="street">Street View</MenuItem>
-            <MenuItem value="satellite">Satellite View</MenuItem>
+            {Object.keys(layers).map((key) => (
+              <MenuItem key={key} value={key}>
+                {layerLabels[key] || key}
+              </MenuItem>
+            ))}
           </Select>
         </FormControl>
       </Box>
@@ -590,6 +713,7 @@ const Map = () => {
         center={position}
         zoom={zoom}
         scrollWheelZoom={true}
+        tap={true}
         style={{
           width: '100%',     // 100% of parent container
           height: '100%',    // 100% of parent container
@@ -603,11 +727,12 @@ const Map = () => {
         <RecenterMap position={position} zoom={zoom} />
 
         {/* Map Click Handler */}
-        <MapClickHandler onMapClick={handleMapClick} />
+        <MapClickHandler onMapClick={handleMapClick} manualMode={manualMarkerMode} />
 
         <TileLayer
           url={layers[mapLayer]}
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          maxZoom={21}
+          attribution='&copy; <a href="wapco.ir">wapco</a> contributors'
         />
 
         {/* User Location Marker with Accuracy Circle */}
@@ -616,18 +741,21 @@ const Map = () => {
             <Circle
               center={userLocation}
               radius={locationAccuracy}
-              color="blue"
-              fillColor="blue"
+              color="#e6f2ff"
+              fillColor="#1976d2"
               fillOpacity={0.1}
               weight={2}
             />
-            <Circle
+            {/* crisp, pixel-sized GPS dot */}
+            <CircleMarker
               center={userLocation}
-              radius={5}
-              color="blue"
-              fillColor="blue"
-              fillOpacity={1}
-              weight={0}
+              radius={6}  // 6px radius
+              pathOptions={{
+                color: '#e6f2ff',      // stroke
+                weight: 2,
+                fillColor: '#1976d2',  // light blue fill
+                fillOpacity: 1
+              }}
             />
           </>
         )}
@@ -689,18 +817,38 @@ const Map = () => {
           />
         )}
 
+        {/* Manual Marker Overlay & Icon */}
+        {manualMarkerMode && (
+          <>  <ManualMarkerOverlay onPositionChange={setCenterPos} />
+            {centerPos && (
+              <Marker
+                position={[centerPos.lat, centerPos.lng]}
+                icon={centerIcon}
+              />
+            )} </>
+        )}
+
+        {/* show a little black dot at the clicked spot */}
+        {clickPos && (
+          <CircleMarker
+            center={clickPos}
+            radius={6}
+            pathOptions={{ color: 'black', fillColor: 'black', fillOpacity: 1 }}
+          />
+        )}
+
         {/* Dynamic Markers */}
         {filteredMarkers.map((marker) => (
-          <Marker
+          <NoPopupMarker
             key={marker.id}
             position={marker.position}
-            icon={customMarkerIcon}
+            icon={getMarkerIcon(marker.data.type)}
+            onClick={() => handleMarkerClick(marker)}
             eventHandlers={{
               click: () => handleMarkerClick(marker)
             }}
           >
-            {/* Popup can contain more information if desired */}
-          </Marker>
+          </NoPopupMarker>
         ))}
 
         {/* Path markers */}
@@ -745,7 +893,8 @@ const Map = () => {
         isTracking={isTracking}
         onStartTracking={startTracking}
         onStopTracking={stopTracking}
-        onAddMarker={() => setSelectedLocation({ lat: position[0], lng: position[1] })}
+        // onAddMarker={() => setSelectedLocation({ lat: position[0], lng: position[1] })}
+        onAddMarker={startManualMarker}
         onExport={handleExport} // Add this line
         onImportClick={() => document.getElementById('importInput').click()}
         onFilter={() => setShowFilterModal(true)}
@@ -755,6 +904,26 @@ const Map = () => {
         isDrawingPolygon={isDrawingPolygon}
         onPanelToggle={setDrPanelOpen}
       />
+
+      {/* Manual Marker Finish / Cancel Buttons */}
+      {manualMarkerMode && (
+        <> <Button
+          onClick={finishManualMarker}
+          variant="contained"
+          color="success"
+          sx={{ position: 'fixed', bottom: 80, right: 20, zIndex: 1300 }}
+        >
+          پایان نشانگر و ذخیره
+        </Button>
+          <Button
+            onClick={cancelManualMarker}
+            variant="contained"
+            color="warning"
+            sx={{ position: 'fixed', bottom: 80, right: 160, zIndex: 1300 }}
+          >
+            لغو
+          </Button> </>
+      )}
 
       {isDrawingPath && (
         <Button

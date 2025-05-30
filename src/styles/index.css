@@ -191,12 +191,27 @@ body {
 
 /* Map Container Styles */
 .map-container {
-    position: absolute;
+    position: relative;
     top: 0;
     right: 0;
     width: 100%;
     height: 100%;
     direction: rtl;
+}
+
+/* only show the dot when you’re in manual-marker mode */
+.map-container.manual-marker-mode::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  margin: -4px 0 0 -4px;   /* center the 8×8 dot */
+  background: black;
+  border-radius: 50%;
+  pointer-events: none;    /* so map drags still register */
+  z-index: 1000;
 }
 
 /* Export/Import Button Container */
@@ -384,4 +399,42 @@ body {
 
 h2 {
   text-align: center;
+}
+
+.center-marker-icon {
+  pointer-events: none;
+  z-index: 1000;
+}
+
+.center-pin {
+  font-size: 24px;
+  line-height: 1;
+  text-shadow: 0 1px 1px rgba(0,0,0,0.3);
+}
+
+/* .leaflet-marker-icon.center-marker-icon {
+  transform-origin: bottom center !important;
+  transform: translate(-50%, -100%) !important;
+} */
+.leaflet-div-icon.center-marker-icon {
+  border: 1px dashed red !important;
+}
+
+
+.category-marker-icon > div {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 16px;
+  font-weight: bold;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+}
+
+.leaflet-interactive {
+  /* Leaflet’s SVG circles get this class */
+  filter: drop-shadow(0 0 4px rgba(33, 150, 243, 0.7));
 }
