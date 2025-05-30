@@ -1,16 +1,51 @@
 import { useState, useRef, useEffect } from "react";
 import { useDualTracking } from "../hooks/useDualTracking";
-import { MapContainer, TileLayer, Polyline, Circle, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Polyline, Circle, Marker, useMap } from "react-leaflet";
 import { Box, Typography, IconButton, Tooltip } from "@mui/material";
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import StopIcon from '@mui/icons-material/Stop';
-import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
-import MapIcon from '@mui/icons-material/Map';
 import GpsFixedIcon from '@mui/icons-material/GpsFixed';
 import ExploreIcon from '@mui/icons-material/Explore';
 import BlockIcon from '@mui/icons-material/Block';
 import TextSnippetIcon from '@mui/icons-material/TextSnippet';
 import ListAltIcon from '@mui/icons-material/ListAlt';
+import L from "leaflet";
+
+// 1) Compute heading from the last two DR points (in degrees clockwise from north)
+function calcDrHeading(path) {
+    if (path.length < 2) return 0;
+    const [lat1, lng1] = path[path.length - 2];
+    const [lat2, lng2] = path[path.length - 1];
+    // dy = northward, dx = eastward
+    const dy = lat2 - lat1;
+    const dx = lng2 - lng1;
+    // atan2(dx, dy) gives angle relative to north
+    return (Math.atan2(dx, dy) * 180 / Math.PI + 360) % 360;
+}
+
+// 2) SVG arrow inside a DivIcon, rotated by `heading`
+function DrArrowMarker({ position, heading }) {
+    const icon = L.divIcon({
+        className: "",              // no extra CSS
+        iconSize: [48, 48],         // adjust as you like
+        iconAnchor: [24, 24],       // center on the point
+        html: `
+       <div style="
+         transform: rotate(${heading}deg);
+         width: 48px; height: 48px;
+         display: flex;
+         align-items: center;
+         justify-content: center;
+       ">
+         <!-- simple arrow SVG -->
+         <svg width="32" height="32" viewBox="0 0 24 24" fill="orange" xmlns="http://www.w3.org/2000/svg">
+           <path d="M12 2 L19 21 L12 17 L5 21 Z"/>
+         </svg>
+       </div>
+     `
+    });
+    return <Marker position={position} icon={icon} />;
+}
 
 function toLatLngArr(points, key) {
     return points
@@ -89,6 +124,8 @@ export default function DualTrackingTest({ mode, actions, mapHeight }) {
     const mapRef = useRef(null);
     const firstZoomed = useRef(false);
 
+    const drHeading = calcDrHeading(drPath);
+
     useEffect(() => {
         if (mode === 'full' && !tracking && mapRef.current) {
             navigator.geolocation.getCurrentPosition(
@@ -118,8 +155,8 @@ export default function DualTrackingTest({ mode, actions, mapHeight }) {
             firstZoomed.current = false;
         }
     }, [mode, lastGps, initialGps]);
-    
-// compact = render *only* the controls passed via `actions(...)`
+
+    // compact = render *only* the controls passed via `actions(...)`
     // if (mode === "compact" && typeof actions === "function") {
     //     return actions({
     //       tracking,
@@ -171,9 +208,9 @@ export default function DualTrackingTest({ mode, actions, mapHeight }) {
                         // **initial GPS zoom** when modal opens
                         if (mode !== "compact") {
                             navigator.geolocation.getCurrentPosition(
-                              (pos) => mapInstance.setView([pos.coords.latitude, pos.coords.longitude], 17),
-                              (err) => console.warn("Failed to fetch initial GPS:", err),
-                              { enableHighAccuracy: true }
+                                (pos) => mapInstance.setView([pos.coords.latitude, pos.coords.longitude], 17),
+                                (err) => console.warn("Failed to fetch initial GPS:", err),
+                                { enableHighAccuracy: true }
                             );
                         }
                     }}
@@ -183,6 +220,12 @@ export default function DualTrackingTest({ mode, actions, mapHeight }) {
                     <Polyline positions={drPath} color="orange" weight={4} opacity={0.7} dashArray="6 8" />
                     {lastGps && <Circle center={[lastGps.latitude, lastGps.longitude]} radius={6} color="blue" />}
                     {lastDr && <Circle center={[lastDr.latitude, lastDr.longitude]} radius={6} color="orange" />}
+                    {drPath.length > 0 && (
+                        <DrArrowMarker
+                            position={drPath[drPath.length - 1]}
+                            heading={drHeading}
+                        />
+                    )}
                     <AutoRecenter gps={lastGps} dr={lastDr} mode={followMode} />
                 </MapContainer>
 
