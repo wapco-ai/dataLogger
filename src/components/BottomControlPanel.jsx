@@ -42,6 +42,7 @@ import ExploreIcon from '@mui/icons-material/Explore';
 import { useNavigate } from "react-router-dom";
 import DirectionsIcon from '@mui/icons-material/Directions';
 import AssistantDirectionIcon from '@mui/icons-material/AssistantDirection';
+import FollowTheSignsIcon from '@mui/icons-material/FollowTheSigns';
 
 export default function BottomControlPanel({
   isTracking,
@@ -178,7 +179,7 @@ export default function BottomControlPanel({
             }}
             size="large"
           >
-            <AssistantDirectionIcon />
+            <FollowTheSignsIcon />
           </IconButton>
         </Tooltip>
         <Tooltip title="بررسی کالیبراسیون قطب‌نما" arrow>
