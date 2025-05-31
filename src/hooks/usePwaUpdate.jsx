@@ -1,3 +1,4 @@
+// src/hooks/usePwaUpdate.js
 import { useEffect, useRef, useState } from "react";
 
 export function usePwaUpdate() {
@@ -5,6 +6,7 @@ export function usePwaUpdate() {
   const [hasUpdate, setHasUpdate] = useState(false);
 
   useEffect(() => {
+    let mounted = true;
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.ready.then((registration) => {
         registration.addEventListener("updatefound", () => {
@@ -15,12 +17,13 @@ export function usePwaUpdate() {
               navigator.serviceWorker.controller
             ) {
               waitingWorker.current = newWorker;
-              setHasUpdate(true);
+              if (mounted) setHasUpdate(true);
             }
           });
         });
       });
     }
+    return () => { mounted = false; };
   }, []);
 
   const updateApp = () => {
