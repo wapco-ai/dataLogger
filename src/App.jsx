@@ -18,13 +18,6 @@ function App() {
       overflow: 'hidden'
     }}>
       <ThemeProvider theme={theme}>
-        <BrowserRouter basename="/dataLogger">
-          <Routes>
-            <Route path="/" element={<Map />} />
-            <Route path="/calibration" element={<CompassCalibrationPage />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
         {hasUpdate && (
           <div style={{
             position: 'fixed',
@@ -51,6 +44,13 @@ function App() {
             </button>
           </div>
         )}
+        <BrowserRouter basename="/dataLogger">
+          <Routes>
+            <Route path="/" element={<Map />} />
+            <Route path="/calibration" element={<CompassCalibrationPage />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
       </ThemeProvider>
     </div>
   )

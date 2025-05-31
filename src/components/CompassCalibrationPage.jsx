@@ -60,6 +60,7 @@ export default function CompassCalibrationPage() {
   };
 
   const handleOrientation = (event) => {
+    console.log("Device orientation event fired!", event); // خط جدید برای تست
     if (!state.running) return;
     const { alpha, beta, gamma } = event;
     if (alpha == null) return;

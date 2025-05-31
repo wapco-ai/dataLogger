@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export function usePwaUpdate() {
-  const [waitingWorker, setWaitingWorker] = useState(null);
+  const waitingWorker = useRef(null);
   const [hasUpdate, setHasUpdate] = useState(false);
 
   useEffect(() => {
@@ -14,7 +14,7 @@ export function usePwaUpdate() {
               newWorker.state === "installed" &&
               navigator.serviceWorker.controller
             ) {
-              setWaitingWorker(newWorker);
+              waitingWorker.current = newWorker;
               setHasUpdate(true);
             }
           });
@@ -24,8 +24,8 @@ export function usePwaUpdate() {
   }, []);
 
   const updateApp = () => {
-    if (waitingWorker) {
-      waitingWorker.postMessage({ type: "SKIP_WAITING" });
+    if (waitingWorker.current) {
+      waitingWorker.current.postMessage({ type: "SKIP_WAITING" });
     }
   };
 
