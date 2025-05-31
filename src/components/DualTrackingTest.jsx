@@ -9,7 +9,10 @@ import ExploreIcon from '@mui/icons-material/Explore';
 import BlockIcon from '@mui/icons-material/Block';
 import TextSnippetIcon from '@mui/icons-material/TextSnippet';
 import ListAltIcon from '@mui/icons-material/ListAlt';
+// import useCompassCalibration from '../hooks/useCompassCalibration';
+import CompassStatus from "./CompassStatus"; // مسیر مناسب را تنظیم کن
 import L from "leaflet";
+
 
 // 1) Compute heading from the last two DR points (in degrees clockwise from north)
 function calcDrHeading(path) {
@@ -197,7 +200,7 @@ export default function DualTrackingTest({ mode, actions, mapHeight }) {
                     </span>
                 </Tooltip>
             </Box>
-
+            <CompassStatus />
             <Box sx={{ flex: 1, minHeight: 0 }}>
                 <MapContainer
                     center={gpsPath.length ? gpsPath[gpsPath.length - 1] : [36.2972, 59.6067]}
@@ -228,6 +231,7 @@ export default function DualTrackingTest({ mode, actions, mapHeight }) {
                     )}
                     <AutoRecenter gps={lastGps} dr={lastDr} mode={followMode} />
                 </MapContainer>
+                
 
                 <Box
                     sx={{

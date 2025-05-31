@@ -1,9 +1,12 @@
 
 import React, { useState } from 'react'
 import { ThemeProvider } from '@mui/material/styles';
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import theme from './theme';
 import Map from './components/Map'
 // import NodeModal from './components/NodeModal'
+import Map from './components/Map';
+import CompassCalibrationPage from './components/CompassCalibrationPage';
 
 
 function App() {
@@ -30,21 +33,13 @@ function App() {
       overflow: 'hidden'
     }}>
       <ThemeProvider theme={theme}>
-        <Map
-          onMapClick={handleMapClick}
-          style={{
-            height: '100%',
-            width: '100%'
-          }}
-        />
-        </ThemeProvider>
-
-      {/* {isNodeModalOpen && (
-        <NodeModal
-          location={selectedLocation}
-          onClose={handleCloseModal}
-        />
-      )} */}
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Map />} />
+            <Route path="/calibration" element={<CompassCalibrationPage />} />
+          </Routes>
+        </BrowserRouter>
+      </ThemeProvider>
     </div>
   )
 }

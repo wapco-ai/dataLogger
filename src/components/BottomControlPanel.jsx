@@ -39,6 +39,9 @@ import MapIcon from '@mui/icons-material/Map'; // Use your preferred icon
 import HomeMaxIcon from '@mui/icons-material/HomeMax';
 import MinimizeIcon from '@mui/icons-material/Minimize';
 import ExploreIcon from '@mui/icons-material/Explore';
+import { useNavigate } from "react-router-dom";
+import DirectionsIcon from '@mui/icons-material/Directions';
+import AssistantDirectionIcon from '@mui/icons-material/AssistantDirection';
 
 export default function BottomControlPanel({
   isTracking,
@@ -82,7 +85,7 @@ export default function BottomControlPanel({
     setPanelMode('closed');
     if (onPanelToggle) onPanelToggle(false);
   };
-
+  const navigate = useNavigate();
 
   return (
 
@@ -175,6 +178,11 @@ export default function BottomControlPanel({
             }}
             size="large"
           >
+            <AssistantDirectionIcon />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title="بررسی کالیبراسیون قطب‌نما" arrow>
+          <IconButton color="info" onClick={() => navigate("/calibration")} size={iconSize}>
             <ExploreIcon />
           </IconButton>
         </Tooltip>
@@ -218,7 +226,7 @@ export default function BottomControlPanel({
 
           {/* Inner Content */}
           <Box sx={{ flex: 1, minHeight: 0, px: 2, pb: 2 }}>
-            <DualTrackingTest mode={panelMode}/>
+            <DualTrackingTest mode={panelMode} />
           </Box>
 
         </Paper>
