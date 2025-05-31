@@ -12,6 +12,7 @@ import {
 } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import 'leaflet-rotate';
 import '../styles/index.css';
 import NodeModal from './NodeModal';
 import PathModal from './PathModal';
@@ -89,6 +90,19 @@ function NoPopupMarker({ position, children, ...props }) {
       <Popup>{children}</Popup>  {/* still in JSX, but won’t open on click */}
     </Marker>
   );
+}
+
+function MapRotationControl() {
+  // این هوک فقط یک بار کنترل را اضافه می‌کند
+  useEffect(() => {
+    // صبر کن تا نقشه ساخته شود
+    const map = window.leafletMapInstance;
+    if (map && L.control.rotate) {
+      L.control.rotate({ position: 'topright' }).addTo(map);
+    }
+  }, []);
+
+  return null;
 }
 
 
@@ -202,6 +216,7 @@ const Map = () => {
   // NEW: Manual marker mode
   const [manualMarkerMode, setManualMarkerMode] = useState(false);
   const [centerPos, setCenterPos] = useState(null);
+
 
 
   const handleExport = (format = 'json') => {
@@ -722,6 +737,11 @@ const Map = () => {
           padding: 0,        // No padding
           direction: 'rtl'
         }}
+        whenCreated={mapInstance => {
+          mapRef.current = mapInstance;
+          window.leafletMapInstance = mapInstance; // این خط را اضافه کن!
+          // سایر کدهای شما...
+        }}
       >
         {/* Recenter Map */}
         <RecenterMap position={position} zoom={zoom} />
@@ -887,6 +907,7 @@ const Map = () => {
             </React.Fragment>
           );
         })}
+        <MapRotationControl />
       </MapContainer>
 
       <BottomControlPanel
