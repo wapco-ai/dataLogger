@@ -714,6 +714,7 @@ const Map = () => {
       )}
 
       <MapContainer
+        // center={[36.2972, 59.6067]} // فقط یکبار
         zoom={zoom}
         scrollWheelZoom={true}
         tap={true}

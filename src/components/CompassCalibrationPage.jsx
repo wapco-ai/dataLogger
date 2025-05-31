@@ -132,7 +132,6 @@ export default function CompassCalibrationPage() {
       window.removeEventListener("deviceorientation", handlerRef.current);
     };
   }, []);
-  console.log('test update')
   return (
     <Box sx={{
       maxWidth: 400,
