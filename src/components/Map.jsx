@@ -125,7 +125,6 @@ function getMarkerIcon(type) {
   });
 }
 
-
 // Component to listen for map drag/zoom and report center
 function ManualMarkerOverlay({ onPositionChange }) {
   const map = useMap();
@@ -715,7 +714,6 @@ const Map = () => {
       )}
 
       <MapContainer
-        center={position}
         zoom={zoom}
         scrollWheelZoom={true}
         tap={true}
