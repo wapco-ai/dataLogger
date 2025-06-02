@@ -1,34 +1,92 @@
 import React, { useState } from 'react';
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  FormGroup,
-  FormControlLabel,
-  Checkbox,
-  Radio,
-  RadioGroup,
-  Button
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions,
+    TextField,
+    Select,
+    MenuItem,
+    FormControl,
+    InputLabel,
+    FormGroup,
+    FormControlLabel,
+    Checkbox,
+    Radio,
+    RadioGroup,
+    Button
 } from '@mui/material';
+
+// ابتدای فایل DeletionModal.jsx
+const groupLabels = {
+    sahn: "صحن",
+    eyvan: "ایوان",
+    ravaq: "رواق",
+    masjed: "مسجد",
+    madrese: "مدرسه",
+    khadamat: "خدماتی",
+    elmi: "علمی/آموزشی/فرهنگی",
+    cemetery: "آرامستان",
+    other: "سایر"
+};
+const nodeFunctionLabels = {
+    door: "درب",
+    connection: "نقطه اتصال",
+    elevator: "آسانسور",
+    escalator: "پله برقی",
+    ramp: "رمپ",
+    stairs: "پله",
+    service: "سرویس",
+    other: "سایر"
+};
+const typeLabels = {
+    ziyarati: "زیارتی",
+    tarikhi: "تاریخی",
+    memari: "معماری",
+    farhangi: "فرهنگی",
+    khadamat: "خدماتی"
+};
+const genderLabels = {
+    male: "مردانه",
+    female: "زنانه",
+    family: "خانوادگی"
+};
+const serviceLabels = {
+    wheelchair: "ویلچر",
+    electricVan: "ون برقی",
+    walking: "پیاده‌روی"
+};
+const prayerEventLabels = {
+    azan_fajr: "اذان صبح",
+    sunrise: "طلوع آفتاب",
+    azan_zohr: "اذان ظهر",
+    sunset: "غروب آفتاب",
+    azan_maghreb: "اذان مغرب"
+};
+
 
 const DeletionModal = ({ selectedItem, onDelete, onClose }) => {
     const renderTransportModes = (modes) => {
         if (!modes || modes.length === 0) return 'ندارد';
+        return modes.map(mode => serviceLabels[mode] || mode).join(', ');
+    };
 
-        return modes.map(mode => {
-            switch (mode) {
-                case 'wheelchair': return 'ویلچر';
-                case 'electricVan': return 'ون برقی';
-                case 'walking': return 'پیاده‌روی';
-                default: return mode;
-            }
-        }).join(', ');
+    const renderRestrictedTimes = (times) => {
+        if (!Array.isArray(times) || times.length === 0) return "محدودیتی ثبت نشده است";
+        return (
+            <ul style={{ margin: 0, paddingRight: 18 }}>
+                {times.map((rt, i) => (
+                    <li key={i} style={{ fontSize: 13 }}>
+                        {rt.type === "prayerEvent"
+                            ? `همه روزها: ${prayerEventLabels[rt.prayerEvent] || rt.prayerEvent} (${rt.toleranceBefore} دقیقه قبل تا ${rt.toleranceAfter} دقیقه بعد)`
+                            : `${rt.day} - ${rt.allDay ? "تمام روز" : (rt.timeSlots || []).map(s => `${s.from}–${s.to}`).join("، ")}`
+                            + (rt.allowedGenders && rt.allowedGenders.length
+                                ? ` (${rt.allowedGenders.map(g => genderLabels[g]).join("، ")})`
+                                : " (هیچکس مجاز نیست!)")}
+                    </li>
+                ))}
+            </ul>
+        );
     };
 
     // New helper:
@@ -51,7 +109,7 @@ const DeletionModal = ({ selectedItem, onDelete, onClose }) => {
         }
         return (totalDistance / 1000).toFixed(2);
     };
-
+    console.log("Selected Item:", selectedItem);
     return (
         <div style={{
             position: 'fixed',
@@ -101,24 +159,58 @@ const DeletionModal = ({ selectedItem, onDelete, onClose }) => {
                     borderRadius: '8px',
                     marginBottom: '15px'
                 }}>
-                    <p>
-                        <strong>نوع نشانگر:</strong> {selectedItem.item.data?.type || 'نامشخص'}
+
+                    <p><strong>گروه:</strong> {groupLabels[selectedItem.item.data?.group] || "ثبت نشده"}</p>
+                    <p><strong>زیرگروه:</strong> {selectedItem.item.data?.subGroup || "ثبت نشده"}</p>
+                    <p><strong>کارکرد گره:</strong> {nodeFunctionLabels[selectedItem.item.data?.nodeFunction] || "ثبت نشده"}</p>
+                    <p><strong>نوع محل:</strong>
+                        {(selectedItem.item.data?.types && selectedItem.item.data.types.length > 0)
+                            ? selectedItem.item.data.types.map(t => typeLabels[t] || t).join("، ")
+                            : "ثبت نشده"}
                     </p>
                     <p>
-                        <strong>شیوه‌های حمل و نقل:</strong> {renderTransportModes(selectedItem.item.data?.transportModes)}
+                        <strong>امکانات/خدمات:</strong>
+                        {(selectedItem.item.data?.services && Object.keys(selectedItem.item.data.services).filter(k => selectedItem.item.data.services[k]).length > 0)
+                            ? Object.keys(selectedItem.item.data.services)
+                                .filter(k => selectedItem.item.data.services[k])
+                                .map(k => serviceLabels[k] || k)
+                                .join("، ")
+                            : "ندارد"}
                     </p>
                     <p>
                         <strong>جنسیت تردد:</strong>
-                        {selectedItem.item.data?.gender === 'male' ? 'مردانه' :
-                            selectedItem.item.data?.gender === 'female' ? 'زنانه' :
-                                selectedItem.item.data?.gender === 'family' ? 'خانوادگی' : 'نامشخص'}
+                        {genderLabels[selectedItem.item.data?.gender] || "ثبت نشده"}
                     </p>
                     <p>
                         <strong>موقعیت مکانی:</strong>
-                        {`${selectedItem.item.position[0].toFixed(4)}, ${selectedItem.item.position[1].toFixed(4)}`}
+                        {selectedItem.item.position && selectedItem.item.position.length === 2
+                            ? `${selectedItem.item.position[0].toFixed(5)}, ${selectedItem.item.position[1].toFixed(5)}`
+                            : "ثبت نشده"}
+                    </p>
+                    {/* <p>
+                        <strong>شناسه یکتا:</strong> {selectedItem.item.data?.uniqueId || "ثبت نشده"}
+                    </p> */}
+                    <p>
+                        <strong>محدودیت زمانی:</strong>
+                        {selectedItem.item.data?.restrictedTimes && selectedItem.item.data.restrictedTimes.length > 0 ?
+                            <ul style={{ margin: 0, paddingRight: 18 }}>
+                                {selectedItem.item.data.restrictedTimes.map((rt, i) => (
+                                    <li key={i} style={{ fontSize: 13 }}>
+                                        {rt.type === "prayerEvent"
+                                            ? `همه روزها: ${prayerEventLabels[rt.prayerEvent] || rt.prayerEvent} (${rt.toleranceBefore} دقیقه قبل تا ${rt.toleranceAfter} دقیقه بعد)`
+                                            : `${rt.day} - ${rt.allDay ? "تمام روز" : (rt.timeSlots || []).map(s => `${s.from}–${s.to}`).join("، ")}`
+                                            + (rt.allowedGenders && rt.allowedGenders.length
+                                                ? ` (${rt.allowedGenders.map(g => genderLabels[g]).join("، ")})`
+                                                : " (هیچکس مجاز نیست!)")
+                                        }
+                                    </li>
+                                ))}
+                            </ul>
+                            : "محدودیتی ثبت نشده است"}
                     </p>
                 </div>
             )}
+
 
             {/* Path-Specific Details */}
             {selectedItem.type === 'path' && (
@@ -150,70 +242,17 @@ const DeletionModal = ({ selectedItem, onDelete, onClose }) => {
             )}
 
             {selectedItem.type === 'polygon' && (
-                <div style={{
-                    backgroundColor: '#f5f4e6',
-                    padding: '15px',
-                    borderRadius: '8px',
-                    marginBottom: '15px'
-                }}>
-                    <p>
-                        <strong>نام محدوده:</strong> {selectedItem.item.name || 'بدون نام'}
-                    </p>
-                    <p>
-                        <strong>توضیحات:</strong> {selectedItem.item.description || 'بدون توضیحات'}
-                    </p>
-                    <p>
-                        <strong>نوع محدوده:</strong> {selectedItem.item.type || 'نامشخص'}
-                    </p>
-                    <p>
-                        <strong>شیوه‌های حمل و نقل:</strong> {(selectedItem.item.transportModes || []).join(', ') || 'ندارد'}
-                    </p>
-                    <p>
-                        <strong>جنسیت تردد:</strong> {
-                            selectedItem.item.gender === 'male' ? 'مردانه' :
-                                selectedItem.item.gender === 'female' ? 'زنانه' :
-                                    selectedItem.item.gender === 'family' ? 'خانوادگی' : 'نامشخص'
-                        }
-                    </p>
-                    <p>
-                        <strong>تعداد نقاط:</strong> {selectedItem.item.coordinates?.length || 0}
-                    </p>
-                    <p>
-                        <strong>تاریخ ایجاد:</strong> {new Date(selectedItem.item.timestamp).toLocaleDateString('fa-IR')}
-                    </p>
-                    <p>
-                        <strong>زمان‌های محدودیت:</strong>
-                        <br />
-                        {selectedItem.item.restrictedTimes && Object.keys(selectedItem.item.restrictedTimes).length > 0 ? (
-                            <ul style={{ margin: 0, paddingRight: 18 }}>
-                                {Object.entries(selectedItem.item.restrictedTimes).map(([day, times]) => (
-                                    <li key={day}>
-                                        <span style={{ fontWeight: "bold" }}>
-                                            {
-                                                {
-                                                    saturday: "شنبه",
-                                                    sunday: "یک‌شنبه",
-                                                    monday: "دوشنبه",
-                                                    tuesday: "سه‌شنبه",
-                                                    wednesday: "چهارشنبه",
-                                                    thursday: "پنج‌شنبه",
-                                                    friday: "جمعه"
-                                                }[day]
-                                            }
-                                        </span>
-                                        :{" "}
-                                        {times.map((slot, idx) =>
-                                            <span key={idx}>
-                                                {slot.start} - {slot.end}{idx < times.length - 1 ? " ، " : ""}
-                                            </span>
-                                        )}
-                                    </li>
-                                ))}
-                            </ul>
-                        ) : "محدودیتی ثبت نشده است"}
-                    </p>
+                <div style={{ backgroundColor: '#f5f4e6', padding: '15px', borderRadius: '8px', marginBottom: '15px' }}>
+                    <p><strong>گروه:</strong> {groupLabels[selectedItem.item?.group] || "ثبت نشده"}</p>
+                    <p><strong>نوع محل:</strong> {(selectedItem.item?.types || []).map(t => typeLabels[t] || t).join("، ") || "ثبت نشده"}</p>
+                    <p><strong>امکانات/خدمات:</strong> {renderTransportModes(Object.keys(selectedItem.item?.services || {}).filter(k => selectedItem.item.services[k]))}</p>
+                    <p><strong>جنسیت تردد:</strong> {genderLabels[selectedItem.item?.gender] || "ثبت نشده"}</p>
+                    <p><strong>تعداد رئوس محدوده:</strong> {selectedItem.item.coordinates?.length || 0}</p>
+                    {/* <p><strong>شناسه یکتا:</strong> {selectedItem.item?.uniqueId || "ثبت نشده"}</p> */}
+                    <p><strong>محدودیت زمانی:</strong> {renderRestrictedTimes(selectedItem.item?.restrictedTimes)}</p>
                 </div>
             )}
+
 
             {/* Deletion Confirmation Buttons */}
             <div style={{

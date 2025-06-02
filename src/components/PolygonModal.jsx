@@ -2,237 +2,222 @@ import React, { useState } from 'react';
 import {
     Dialog, DialogTitle, DialogContent, DialogActions,
     TextField, Select, MenuItem, FormControl, InputLabel,
-    FormGroup, FormControlLabel, Checkbox, Radio, RadioGroup, Button,
-    Grid, IconButton, Typography,
-    Box, Collapse, Paper, Chip, Switch
+    FormGroup, FormControlLabel, Checkbox, RadioGroup, Radio, Button,
+    Box, Typography
 } from '@mui/material';
-import { AddCircle, Delete, AddCircleOutline } from "@mui/icons-material";
+import TimeRestrictionsFull from './TimeRestrictions';
 
-// Days in Persian
-const daysOfWeek = [
-    { key: "saturday", label: "شنبه" },
-    { key: "sunday", label: "یک‌شنبه" },
-    { key: "monday", label: "دوشنبه" },
-    { key: "tuesday", label: "سه‌شنبه" },
-    { key: "wednesday", label: "چهارشنبه" },
-    { key: "thursday", label: "پنج‌شنبه" },
-    { key: "friday", label: "جمعه" },
+// داده‌های پایه (مستقیماً از پروژه یا فایل config جدا ایمپورت کن)
+const groups = [
+    { value: 'sahn', label: 'صحن' },
+    { value: 'eyvan', label: 'ایوان' },
+    { value: 'ravaq', label: 'رواق' },
+    { value: 'masjed', label: 'مسجد' },
+    { value: 'madrese', label: 'مدرسه' },
+    { value: 'khadamat', label: 'خدماتی' },
+    { value: 'elmi', label: 'علمی/آموزشی/فرهنگی' },
+    { value: 'cemetery', label: 'آرامستان' },
+    { value: 'other', label: 'سایر' },
+];
+const subGroups = {
+    sahn: ['صحن انقلاب', 'صحن آزادی', 'صحن جمهوری اسلامی', 'صحن قدس', 'صحن جامع رضوی', 'صحن غدیر', 'صحن کوثر', 'صحن امام حسن مجتبی', 'صحن پیامبر اعظم'],
+    eyvan: ['ایوان عباسی', 'ایوان طلایی', 'ایوان ساعت', 'ایوان نقاره', 'ایوان ولیعصر', 'ایوان طلای آزادی'],
+    ravaq: ['دارالحفاظ', 'دارالسياده', 'دارالسلام', 'حاتم خانی', 'گنبدالله وردی خان', 'دارالضیافه', 'توحیدخانه', 'دارالفیض', 'دارالسعاده', 'شیخ بهایی', 'دارالسرور', 'دارالشکر', 'دارالشرف', 'دارالعزه', 'دارالذکر', 'دارالزهد', 'دارالعباد', 'دارالولایه', 'دارالهدایه', 'دارالرحمه', 'دارلاخلاص', 'حضرت معصومه', 'دارالحکمه', 'دارالحجه', 'دارالکرامه', 'امام خمینی', 'شیخ طوسی', 'سیخ حر عاملی', 'حضرت فاطمه', 'دارالمرحمه', 'کوثر', 'غدیر'],
+    masjed: ['مسجد گوهرشاد', 'مسجد بالاسر'],
+    madrese: ['مدرسه پریزاد', 'مدرسه دودرب'],
+    khadamat: ['دفاتر امانات', 'دفاتر اشیاء پیدا شده', 'دفاتر پیدا شدگان', 'دفاتر نذورات', 'دفاتر صندلی چرخدار', 'دفتر آگاهی', 'دفتر امور دفن', 'کفشداری', 'سرویس بهداشتی', 'مهمانسرا', 'امداد زائرین', 'دارالشفا', 'آرامستان', 'پارکینگ', 'چایخانه'],
+    elmi: ['بنیاد پژوهش‌های اسلامی', 'دانشگاه علوم اسلامی رضوی', 'کتابخانه مرکزی', 'کتابخانه مسجد گوهرشاد', 'موزه مرکزی', 'موزه فرش', 'موزه قرآن'],
+    cemetery: ['آرامستان امام رضا', 'آرامستان خواجه ربیع', 'آرامستان خواجه اباصلت'],
+    other: ['سایر'],
+};
+const types = [
+    { value: 'ziyarati', label: 'زیارتی' },
+    { value: 'tarikhi', label: 'تاریخی' },
+    { value: 'memari', label: 'معماری' },
+    { value: 'farhangi', label: 'فرهنگی' },
+    { value: 'khadamat', label: 'خدماتی' },
+];
+const servicesList = [
+    { value: 'wheelchair', label: 'ویلچر' },
+    { value: 'electricVan', label: 'ون برقی' },
+    { value: 'walking', label: 'پیاده‌روی' }
+];
+const genders = [
+    { value: 'male', label: 'مردانه' },
+    { value: 'female', label: 'زنانه' },
+    { value: 'family', label: 'خانوادگی' }
 ];
 
 function PolygonModal({ onSave, onClose, polygonCoordinates }) {
     const [data, setData] = useState({
-        name: '', description: '', type: '',
-        transportModes: { wheelchair: false, electricVan: false, walking: false },
+        name: '',
+        description: '',
+        group: '',
+        subGroup: '',
+        types: [],
+        services: {},
         gender: '',
+        restrictedTimes: [],
     });
     const [error, setError] = useState('');
-    const [restrictedTimes, setRestrictedTimes] = useState({});
 
     const handleChange = (field, value) => setData(prev => ({ ...prev, [field]: value }));
-    const handleTransportModeChange = (mode) => setData(prev => ({
-        ...prev,
-        transportModes: { ...prev.transportModes, [mode]: !prev.transportModes[mode] }
-    }));
+    const handleTypeChange = (typeValue) => {
+        setData(prev => ({
+            ...prev,
+            types: prev.types.includes(typeValue)
+                ? prev.types.filter(t => t !== typeValue)
+                : [...prev.types, typeValue]
+        }));
+    };
+    const handleServiceChange = (service) => {
+        setData(prev => ({
+            ...prev,
+            services: { ...prev.services, [service]: !prev.services[service] }
+        }));
+    };
+
+    const handleRestrictedTimesChange = (items) =>
+        setData(prev => ({ ...prev, restrictedTimes: items }));
 
     const handleSave = () => {
-        if (!data.name.trim()) {
-            setError('نام محدوده را وارد کنید');
-            return;
-        }
-        const selectedTransportModes = Object.keys(data.transportModes).filter(mode => data.transportModes[mode]);
+        if (!data.name.trim()) return setError('نام محدوده را وارد کنید');
+        if (!data.group) return setError('یک گروه انتخاب کنید');
+        if (!data.subGroup) return setError('زیرگروه را انتخاب کنید');
+        if (data.types.length === 0) return setError('حداقل یک نوع محل انتخاب کنید');
+
         onSave({
             ...data,
-            transportModes: selectedTransportModes,
             coordinates: polygonCoordinates,
-            restrictedTimes, // <-- add this line!
             timestamp: new Date().toISOString()
         });
         onClose();
     };
 
-
     return (
-        <Dialog open={true} onClose={onClose} maxWidth="sm" dir="rtl" fullWidth>
-            <DialogTitle sx={{ textAlign: 'center', fontWeight: 'bold' }}>ایجاد محدوده جدید</DialogTitle>
-            <DialogContent dividers>
-                {error && <div style={{ color: 'red', marginBottom: 16, textAlign: 'center' }}>{error}</div>}
-                <TextField label="نام محدوده" fullWidth margin="normal"
-                    value={data.name} onChange={e => handleChange('name', e.target.value)} required />
-                <TextField label="توضیحات" fullWidth margin="normal" multiline rows={3}
-                    value={data.description} onChange={e => handleChange('description', e.target.value)} />
-                <FormControl fullWidth margin="normal">
-                    <InputLabel>نوع محدوده</InputLabel>
-                    <Select value={data.type} onChange={e => handleChange('type', e.target.value)} label="نوع محدوده">
-                        <MenuItem value="park">پارک</MenuItem>
-                        <MenuItem value="zone">محدوده</MenuItem>
-                        <MenuItem value="other">سایر</MenuItem>
+        <Dialog open={true} onClose={onClose} maxWidth="xs" fullWidth dir="rtl">
+            <DialogTitle sx={{ textAlign: 'center', fontWeight: 'bold', fontSize: 22, color: "#374151", letterSpacing: 1, bgcolor: "#f6fafd" }}>
+                ایجاد محدوده جدید
+            </DialogTitle>
+            <DialogContent dividers sx={{ bgcolor: "#f9fafb" }}>
+                {error && <Typography color="error" mb={2} align="center">{error}</Typography>}
+
+                <TextField
+                    label="نام محدوده"
+                    fullWidth
+                    margin="dense"
+                    value={data.name}
+                    onChange={e => handleChange('name', e.target.value)}
+                    required
+                    sx={{ mb: 1, bgcolor: "#fff", borderRadius: 2 }}
+                />
+
+                <TextField
+                    label="توضیحات"
+                    fullWidth
+                    margin="dense"
+                    multiline
+                    rows={2}
+                    value={data.description}
+                    onChange={e => handleChange('description', e.target.value)}
+                    sx={{ mb: 1, bgcolor: "#fff", borderRadius: 2 }}
+                />
+
+                <FormControl fullWidth margin="dense" sx={{ mb: 1 }}>
+                    <InputLabel>گروه</InputLabel>
+                    <Select
+                        value={data.group}
+                        onChange={e => {
+                            handleChange('group', e.target.value);
+                            handleChange('subGroup', '');
+                        }}
+                        label="گروه"
+                        size="small"
+                        sx={{ bgcolor: "#fff", borderRadius: 2 }}
+                    >
+                        {groups.map(gr => (
+                            <MenuItem key={gr.value} value={gr.value}>{gr.label}</MenuItem>
+                        ))}
                     </Select>
                 </FormControl>
-                <FormControl component="fieldset" fullWidth margin="normal">
-                    <InputLabel shrink>شیوه‌های حمل و نقل</InputLabel>
-                    <FormGroup>
-                        <FormControlLabel control={
-                            <Checkbox checked={data.transportModes.wheelchair} onChange={() => handleTransportModeChange('wheelchair')} />
-                        } label="ویلچر" />
-                        <FormControlLabel control={
-                            <Checkbox checked={data.transportModes.electricVan} onChange={() => handleTransportModeChange('electricVan')} />
-                        } label="ون برقی" />
-                        <FormControlLabel control={
-                            <Checkbox checked={data.transportModes.walking} onChange={() => handleTransportModeChange('walking')} />
-                        } label="پیاده‌روی" />
-                    </FormGroup>
-                </FormControl>
-                <FormControl component="fieldset" fullWidth margin="normal">
-                    <InputLabel shrink>جنسیت تردد</InputLabel>
-                    <RadioGroup value={data.gender} onChange={e => handleChange('gender', e.target.value)}>
-                        <FormControlLabel value="male" control={<Radio />} label="مردانه" />
-                        <FormControlLabel value="female" control={<Radio />} label="زنانه" />
-                        <FormControlLabel value="family" control={<Radio />} label="خانوادگی" />
-                    </RadioGroup>
+
+                <FormControl fullWidth margin="dense" sx={{ mb: 1 }} disabled={!data.group}>
+                    <InputLabel>زیرگروه</InputLabel>
+                    <Select
+                        value={data.subGroup}
+                        onChange={e => handleChange('subGroup', e.target.value)}
+                        label="زیرگروه"
+                        size="small"
+                        sx={{ bgcolor: "#fff", borderRadius: 2 }}
+                    >
+                        {(subGroups[data.group] || []).map(sub => (
+                            <MenuItem key={sub} value={sub}>{sub}</MenuItem>
+                        ))}
+                    </Select>
                 </FormControl>
 
-                <Typography variant="subtitle1" sx={{ fontWeight: "bold", mt: 2, mb: 1 }}>
-                    <span style={{ borderBottom: "2px solid #999", paddingBottom: 3 }}>
-                        زمان‌های محدودیت دسترسی
-                    </span>
-                </Typography>
-
-                <Box>
-                    {daysOfWeek.map(day => (
-                        <Paper
-                            key={day.key}
-                            elevation={restrictedTimes[day.key] ? 2 : 0}
-                            sx={{
-                                mb: 1,
-                                borderRadius: 3,
-                                p: 1,
-                                bgcolor: restrictedTimes[day.key] ? "#f5f5f5" : "transparent",
-                                transition: "background .2s"
-                            }}
-                        >
-                            <Box display="flex" alignItems="center">
-                                <FormControlLabel
-                                    control={
-                                        <Switch
-                                            checked={!!restrictedTimes[day.key]}
-                                            color="primary"
-                                            onChange={e => {
-                                                setRestrictedTimes(rt =>
-                                                    e.target.checked
-                                                        ? { ...rt, [day.key]: [{ start: '', end: '' }] }
-                                                        : Object.fromEntries(Object.entries(rt).filter(([k]) => k !== day.key))
-                                                );
-                                            }}
-                                        />
-                                    }
-                                    label={<Typography sx={{ fontWeight: "bold" }}>{day.label}</Typography>}
-                                    labelPlacement="start"
-                                    sx={{ flex: 1, mr: 1 }}
-                                />
-                            </Box>
-                            <Collapse in={!!restrictedTimes[day.key]}>
-                                <Box mt={1} pl={2} pr={1}>
-                                    {(restrictedTimes[day.key] || []).map((slot, i) => (
-                                        <Box key={i} display="flex" alignItems="center" mb={1}>
-                                            <TextField
-                                                size="small"
-                                                label="از"
-                                                type="time"
-                                                value={slot.start}
-                                                onChange={e => {
-                                                    const val = e.target.value;
-                                                    setRestrictedTimes(rt => ({
-                                                        ...rt,
-                                                        [day.key]: rt[day.key].map((s, idx) =>
-                                                            idx === i ? { ...s, start: val } : s
-                                                        )
-                                                    }));
-                                                }}
-                                                variant="outlined"
-                                                sx={{ width: 105, mx: 0.5, direction: "ltr", bgcolor: "#fff" }}
-                                                InputLabelProps={{
-                                                    shrink: true,
-                                                    sx: { right: 0, fontWeight: "bold" }
-                                                }}
-                                                inputProps={{
-                                                    step: 300,
-                                                    dir: "ltr",
-                                                    style: { textAlign: "center" }
-                                                }}
-                                            />
-                                            <Typography variant="body2" sx={{ mx: 1 }}>
-                                                تا
-                                            </Typography>
-                                            <TextField
-                                                size="small"
-                                                label="تا"
-                                                type="time"
-                                                value={slot.end}
-                                                onChange={e => {
-                                                    const val = e.target.value;
-                                                    setRestrictedTimes(rt => ({
-                                                        ...rt,
-                                                        [day.key]: rt[day.key].map((s, idx) =>
-                                                            idx === i ? { ...s, end: val } : s
-                                                        )
-                                                    }));
-                                                }}
-                                                variant="outlined"
-                                                sx={{ width: 105, mx: 0.5, direction: "ltr", bgcolor: "#fff" }}
-                                                InputLabelProps={{
-                                                    shrink: true,
-                                                    sx: { right: 0, fontWeight: "bold" }
-                                                }}
-                                                inputProps={{
-                                                    step: 300,
-                                                    dir: "ltr",
-                                                    style: { textAlign: "center" }
-                                                }}
-                                            />
-                                            <IconButton
-                                                onClick={() =>
-                                                    setRestrictedTimes(rt => ({
-                                                        ...rt,
-                                                        [day.key]: rt[day.key].filter((_, idx) => idx !== i)
-                                                    }))
-                                                }
-                                                size="small"
-                                                color="error"
-                                                sx={{ mx: 0.5 }}
-                                                disabled={restrictedTimes[day.key].length === 1}
-                                            >
-                                                <Delete fontSize="small" />
-                                            </IconButton>
-                                        </Box>
-                                    ))}
-                                    <Button
-                                        onClick={() =>
-                                            setRestrictedTimes(rt => ({
-                                                ...rt,
-                                                [day.key]: [...rt[day.key], { start: '', end: '' }]
-                                            }))
-                                        }
-                                        color="primary"
-                                        size="small"
-                                        startIcon={<AddCircleOutline />}
-                                        sx={{ mt: 1, fontWeight: "bold" }}
-                                    >
-                                        افزودن بازه
-                                    </Button>
-                                </Box>
-                            </Collapse>
-                        </Paper>
-                    ))}
+                <Box mb={1}>
+                    <Typography variant="subtitle2" fontWeight="bold" mb={0.5}>نوع محل</Typography>
+                    <Box display="flex" flexWrap="wrap" gap={1}>
+                        {types.map(t => (
+                            <Button
+                                key={t.value}
+                                variant={data.types.includes(t.value) ? "contained" : "outlined"}
+                                color={data.types.includes(t.value) ? "primary" : "inherit"}
+                                onClick={() => handleTypeChange(t.value)}
+                                sx={{ minWidth: 78, fontWeight: "bold", borderRadius: 4, px: 2, py: 0.5 }}
+                            >
+                                {t.label}
+                            </Button>
+                        ))}
+                    </Box>
                 </Box>
 
+                <Box mb={1}>
+                    <Typography variant="subtitle2" fontWeight="bold" mb={0.5}>امکانات / خدمات</Typography>
+                    <Box display="flex" flexWrap="wrap" gap={1}>
+                        {servicesList.map(s => (
+                            <FormControlLabel
+                                key={s.value}
+                                control={
+                                    <Checkbox
+                                        checked={data.services[s.value] || false}
+                                        onChange={() => handleServiceChange(s.value)}
+                                        size="small"
+                                    />
+                                }
+                                label={s.label}
+                                sx={{ mr: 1 }}
+                            />
+                        ))}
+                    </Box>
+                </Box>
 
+                <FormControl fullWidth margin="dense" sx={{ mb: 2 }}>
+                    <InputLabel>جنسیت تردد</InputLabel>
+                    <Select
+                        value={data.gender}
+                        onChange={e => handleChange('gender', e.target.value)}
+                        label="جنسیت تردد"
+                        size="small"
+                        sx={{ bgcolor: "#fff", borderRadius: 2 }}
+                    >
+                        {genders.map(g => (
+                            <MenuItem key={g.value} value={g.value}>{g.label}</MenuItem>
+                        ))}
+                    </Select>
+                </FormControl>
+
+                {/* زمان‌بندی محدودیت دسترسی */}
+                <TimeRestrictionsFull value={data.restrictedTimes} onChange={handleRestrictedTimesChange} />
 
             </DialogContent>
             <DialogActions>
-                <Button onClick={onClose} color="secondary">انصراف</Button>
+                <Button onClick={onClose} color="secondary" variant="outlined">انصراف</Button>
                 <Button onClick={handleSave} color="primary" variant="contained">ذخیره</Button>
             </DialogActions>
         </Dialog>
     );
 }
+
 export default PolygonModal;

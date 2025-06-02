@@ -2,12 +2,9 @@ import { useState, useRef, useEffect } from "react";
 
 // Helper: compute new position in meters based on heading and distance
 function moveLatLng({ latitude, longitude }, headingDeg, distanceMeters) {
-  const R = 6378137;             // Earth radius in meters
+  const R = 6378137;
   const dRad = headingDeg * Math.PI / 180;
-  // Move north/south
-  const newLat = latitude +
-    (distanceMeters * Math.cos(dRad)) / R * (180 / Math.PI);
-  // Move east/west (adjusting for longitude scaling)
+  const newLat = latitude + (distanceMeters * Math.cos(dRad)) / R * (180 / Math.PI);
   const newLng = longitude +
     (distanceMeters * Math.sin(dRad)) /
       (R * Math.cos(latitude * Math.PI / 180)) *
@@ -15,14 +12,23 @@ function moveLatLng({ latitude, longitude }, headingDeg, distanceMeters) {
   return { latitude: newLat, longitude: newLng };
 }
 
+// key for localStorage
+const DR_OFFSET_KEY = "dr_heading_offset";
+
 export function useDualTracking() {
   const [tracking, setTracking] = useState(false);
-  const [points, setPoints] = useState([]); // [{ gps: {...}, dr: {...} }]
+  const [points, setPoints] = useState([]);
+  const [offset, setOffset] = useState(() => {
+    const saved = localStorage.getItem(DR_OFFSET_KEY);
+    return saved ? Number(saved) : 0;
+  });
+
   const lastDrRef = useRef(null);
   const lastGpsRef = useRef(null);
   const lastTimestampRef = useRef(null);
   const headingRef = useRef(0);
 
+  // Listen to device orientation
   useEffect(() => {
     const handleOrientation = (event) => {
       if (typeof event.alpha === "number") headingRef.current = event.alpha;
@@ -33,46 +39,28 @@ export function useDualTracking() {
 
   useEffect(() => {
     if (!tracking) return;
-
-    // Start dual logging
     const watchId = navigator.geolocation.watchPosition(
       (position) => {
         const { latitude, longitude, accuracy, speed, heading } = position.coords;
         const timestamp = position.timestamp;
-
-        // Store current GPS as last known
         lastGpsRef.current = { latitude, longitude, timestamp };
 
-        // Dead reckoning estimate:
         let dr = lastDrRef.current;
         if (!dr) {
           dr = { latitude, longitude, timestamp };
         } else if (lastTimestampRef.current) {
           const dt = (timestamp - lastTimestampRef.current) / 1000; // seconds
           const usedSpeed =
-            typeof speed === "number" && speed > 0
-              ? speed
-              : 1; // default to 1 m/s if not available
+            typeof speed === "number" && speed > 0 ? speed : 1;
           const moved = usedSpeed * dt; // meters
-          // dr = moveLatLng(dr, headingRef.current, moved);
-          const invertedHeading = (360 - headingRef.current) % 360;
-          dr = moveLatLng(dr, invertedHeading, -moved);
-          console.log("DR in:", dr, typeof dr.latitude, typeof dr.longitude);
 
-          // dr = moveLatLng(
-          //   { latitude: dr.latitude, longitude: dr.longitude },
-          //   invertedHeading,
-          //   moved
-          // );
-          // const gpsHeading =
-          //   typeof heading === "number" && !isNaN(heading) ? heading : null;
-          // const finalHeading = gpsHeading !== null ? gpsHeading : deviceHeading;
-          // dr = moveLatLng(dr, finalHeading, moved);
+          // حرفه‌ای: از offset ثبت‌شده توسط کاربر استفاده کن
+          // دقت کن: ابتدا heading را معکوس می‌کنی (360-alpha) بعد offset را کم می‌کنی
+          const correctedHeading = (360 - headingRef.current - offset + 360) % 360;
+          dr = moveLatLng(dr, correctedHeading, moved);
         }
-
         lastDrRef.current = dr;
         lastTimestampRef.current = timestamp;
-
         setPoints((pts) => [
           ...pts,
           {
@@ -81,9 +69,7 @@ export function useDualTracking() {
           },
         ]);
       },
-      (error) => {
-        // Optionally log an error point
-      },
+      (error) => { /* Handle error */ },
       { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 }
     );
     return () => {
@@ -92,16 +78,23 @@ export function useDualTracking() {
       lastGpsRef.current = null;
       lastTimestampRef.current = null;
     };
-  }, [tracking]);
+  }, [tracking, offset]);
 
-  // Control methods
+  // تابع کالیبراسیون (set offset)
+  const calibrateHeadingOffset = () => {
+    // فرض: کاربر الان رو به شمال است!
+    const newOffset = headingRef.current;
+    setOffset(newOffset);
+    localStorage.setItem(DR_OFFSET_KEY, String(newOffset));
+    alert(`کالیبراسیون انجام شد!\nOffset: ${Math.round(newOffset)}°`);
+  };
+
   const start = () => {
     setPoints([]);
     setTracking(true);
     lastDrRef.current = null;
     lastGpsRef.current = null;
     lastTimestampRef.current = null;
-    // **seed initial GPS point** so you immediately get a marker
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const { latitude, longitude, accuracy, speed, heading } = position.coords;
@@ -122,5 +115,5 @@ export function useDualTracking() {
     setTracking(false);
   };
 
-  return { tracking, points, start, stop };
+  return { tracking, points, start, stop, calibrateHeadingOffset, offset };
 }

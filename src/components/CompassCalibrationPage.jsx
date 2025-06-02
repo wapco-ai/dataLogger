@@ -1,6 +1,19 @@
 import React, { useState, useRef } from "react";
-import { Box, Button, Typography, LinearProgress, Collapse, Paper, IconButton } from "@mui/material";
+import {
+  Box,
+  Button,
+  Typography,
+  LinearProgress,
+  Collapse,
+  Paper,
+  IconButton,
+  Fade
+} from "@mui/material";
 import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
+import AutorenewIcon from "@mui/icons-material/Autorenew";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import { useNavigate } from "react-router-dom";
 
 export default function CompassCalibrationPage() {
@@ -18,13 +31,19 @@ export default function CompassCalibrationPage() {
   const [desc, setDesc] = useState("روی دکمه شروع کلیک کنید");
   const [showGuide, setShowGuide] = useState(false);
   const [error, setError] = useState("");
+  const [statusIcon, setStatusIcon] = useState(<InfoOutlinedIcon color="action" fontSize="large" />);
+  const [statusBg, setStatusBg] = useState("#f5f7fa");
+
   const readingsRef = useRef([]);
   const startTimeRef = useRef(null);
+  const runningRef = useRef(false);
+
   const navigate = useNavigate();
 
-  // ثابت و stable برای window event
-  const handleOrientation = React.useCallback((event) => {
-    if (!running) return;
+  // ثابت و همیشه بدون وابستگی به state:
+  function handleOrientation(event) {
+    if (!runningRef.current) return;
+
     if (event.alpha == null) return;
     const _alpha = event.alpha;
     const _beta = event.beta;
@@ -53,11 +72,7 @@ export default function CompassCalibrationPage() {
       setQualityColor(c);
       setAccuracy("±" + variance.toFixed(1) + "°");
     }
-  }, [running]);
-
-  // فقط یکبار، هنگام mount، تابع را روی ref ثابت بگذار تا همیشه قابل remove باشد
-  const handlerRef = useRef();
-  if (!handlerRef.current) handlerRef.current = (e) => handleOrientation(e);
+  }
 
   // تابع شروع بررسی
   const start = async () => {
@@ -91,20 +106,27 @@ export default function CompassCalibrationPage() {
     setQualityPercent(0);
     setQualityColor("error");
     setStatus("در حال نظارت");
-    setDesc("گوشی را حرکت دهید...");
+    setDesc("گوشی را حرکت دهید (مثل ۸ انگلیسی)");
+    setStatusIcon(<AutorenewIcon color="primary" fontSize="large" sx={{ animation: "spin 1.2s linear infinite" }} />);
+    setStatusBg("#e3f2fd");
     setRunning(true);
+    runningRef.current = true;
     startTimeRef.current = Date.now();
 
-    window.addEventListener("deviceorientation", handlerRef.current);
+    window.addEventListener("deviceorientation", handleOrientation);
   };
 
   // توقف
   const stop = () => {
     setRunning(false);
-    window.removeEventListener("deviceorientation", handlerRef.current);
+    runningRef.current = false;
+    window.removeEventListener("deviceorientation", handleOrientation);
+
     // تحلیل دقت پس از پایان
     if (!readingsRef.current.length) {
       setStatus("خطا");
+      setStatusIcon(<ErrorOutlineIcon color="error" fontSize="large" />);
+      setStatusBg("#ffeaea");
       setDesc("داده‌ای دریافت نشد. سنسور قطب‌نما کار نمی‌کند");
       setQuality("--");
       setQualityPercent(0);
@@ -114,14 +136,17 @@ export default function CompassCalibrationPage() {
     const vals = readingsRef.current.map(r => r.alpha);
     const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
     const variance = Math.sqrt(vals.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / vals.length);
-    let q = "ضعیف", p = 20, c = "error", d = "نیاز به کالیبراسیون — گوشی را به شکل ۸ انگلیسی حرکت دهید";
-    if (variance < 5) { q = "عالی"; p = 100; c = "success"; d = "کالیبراسیون عالی — قطب‌نما آماده استفاده است"; }
-    else if (variance < 15) { q = "خوب"; p = 70; c = "warning"; d = "کالیبراسیون خوب — مناسب برای اغلب کاربردها"; }
-    else if (variance < 30) { q = "متوسط"; p = 40; c = "warning"; d = "کالیبراسیون متوسط"; }
+
+    let q = "ضعیف", p = 20, c = "error", d = "نیاز به کالیبراسیون — گوشی را به شکل ۸ انگلیسی حرکت دهید", ic = <ErrorOutlineIcon color="error" fontSize="large" />, bg = "#fffbe6";
+    if (variance < 5) { q = "عالی"; p = 100; c = "success"; d = "کالیبراسیون عالی — قطب‌نما آماده استفاده است"; ic = <CheckCircleIcon color="success" fontSize="large" />; bg = "#e6fce6"; }
+    else if (variance < 15) { q = "خوب"; p = 70; c = "warning"; d = "کالیبراسیون خوب — مناسب برای اغلب کاربردها"; ic = <CheckCircleIcon color="warning" fontSize="large" />; bg = "#fffbe6"; }
+    else if (variance < 30) { q = "متوسط"; p = 40; c = "warning"; d = "کالیبراسیون متوسط — بهتر است گوشی را دوباره کالیبره کنید"; ic = <InfoOutlinedIcon color="warning" fontSize="large" />; bg = "#fffbe6"; }
     setQuality(q);
     setQualityPercent(p);
     setQualityColor(c);
     setStatus(q);
+    setStatusIcon(ic);
+    setStatusBg(bg);
     setDesc(d);
     setAccuracy("±" + variance.toFixed(1) + "°");
   };
@@ -129,9 +154,20 @@ export default function CompassCalibrationPage() {
   // تمیزکاری هنگام unmount
   React.useEffect(() => {
     return () => {
-      window.removeEventListener("deviceorientation", handlerRef.current);
+      window.removeEventListener("deviceorientation", handleOrientation);
     };
   }, []);
+
+  // سبک چرخش آیکون
+  React.useEffect(() => {
+    const style = document.createElement('style');
+    style.innerHTML = `
+      @keyframes spin { from {transform: rotate(0deg);} to {transform: rotate(360deg);} }
+    `;
+    document.head.appendChild(style);
+    return () => { document.head.removeChild(style); }
+  }, []);
+
   return (
     <Box sx={{
       maxWidth: 400,
@@ -164,18 +200,25 @@ export default function CompassCalibrationPage() {
       <Typography variant="h5" fontWeight="bold" align="center" color="primary" mb={2} sx={{ letterSpacing: "0.5px", mt: 2, mb: 2 }}>
         🧭 بررسی کالیبراسیون قطب‌نما
       </Typography>
-      <Paper elevation={2} sx={{
-        mb: 2, py: 2, px: 1,
-        display: "flex", flexDirection: "column", alignItems: "center",
-        bgcolor: "#f5f7fa", borderRadius: 3,
-      }}>
-        <Typography fontWeight="bold" fontSize={20} sx={{ my: 0.5 }}>
-          {status}
-        </Typography>
-        <Typography variant="body2" sx={{ color: "#888", mb: -1 }}>
-          {desc}
-        </Typography>
-      </Paper>
+
+      {/* وضعیت اصلی */}
+      <Fade in>
+        <Paper elevation={2} sx={{
+          mb: 2, py: 2, px: 1,
+          display: "flex", flexDirection: "column", alignItems: "center",
+          bgcolor: statusBg, borderRadius: 3, transition: "background 0.6s",
+        }}>
+          <Box sx={{ mb: 1 }}>{statusIcon}</Box>
+          <Typography fontWeight="bold" fontSize={20} sx={{ my: 0.5 }}>
+            {status}
+          </Typography>
+          <Typography variant="body2" sx={{ color: "#888", mb: -1, textAlign: "center" }}>
+            {desc}
+          </Typography>
+        </Paper>
+      </Fade>
+
+      {/* اعداد سنسور */}
       <Box display="flex" gap={1} mb={2}>
         <Box sx={{ flex: 1, bgcolor: "#e6fce6", borderRadius: 2, px: 2, py: 1, textAlign: "center" }}>
           <Typography fontSize={13} color="#55a84f">دقت</Typography>
@@ -190,6 +233,7 @@ export default function CompassCalibrationPage() {
           </Typography>
         </Box>
       </Box>
+
       <Paper elevation={1} sx={{ mb: 2, p: 1.5, bgcolor: "#f7f8fa", borderRadius: 3, minHeight: 72, }}>
         <Typography fontWeight="bold" fontSize={15} sx={{ mb: 1 }}>
           <span role="img" aria-label="chart">📊</span> داده‌های سنسور:
@@ -209,6 +253,8 @@ export default function CompassCalibrationPage() {
           تعداد خوانش: <b>{count}</b>
         </Typography>
       </Paper>
+
+      {/* نوار کیفیت */}
       <Box mb={1} mt={0.5}>
         <Typography fontSize={14} color="#555" mb={0.5}>کیفیت کالیبراسیون:</Typography>
         <LinearProgress variant="determinate" value={qualityPercent}
@@ -226,8 +272,10 @@ export default function CompassCalibrationPage() {
           sx={{ mt: 0.5, textAlign: "center" }}
         >{quality}</Typography>
       </Box>
+
+      {/* دکمه‌ها */}
       <Box display="flex" gap={1.5} mb={2} mt={1}>
-        <Button fullWidth size="large" variant="contained" color="primary"
+        <Button fullWidth size="large" variant="contained" color={running ? "error" : "primary"}
           onClick={running ? stop : start}
           sx={{ fontWeight: "bold", fontSize: "16px", py: 1.3 }}
         >
@@ -239,6 +287,8 @@ export default function CompassCalibrationPage() {
           🔄 راهنمای کالیبراسیون
         </Button>
       </Box>
+
+      {/* راهنما */}
       <Collapse in={showGuide} sx={{ mb: 2 }}>
         <Paper sx={{ p: 2, bgcolor: "#fffbe6", borderRight: "4px solid #ff9800", mb: 2, borderRadius: 2, }}>
           <Typography fontWeight="bold" mb={1}>📋 دستورات کالیبراسیون:</Typography>
@@ -250,6 +300,7 @@ export default function CompassCalibrationPage() {
           </ol>
         </Paper>
       </Collapse>
+
       <Button
         startIcon={<ArrowBackIosNewIcon />}
         onClick={() => navigate("/")}

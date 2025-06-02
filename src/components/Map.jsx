@@ -49,27 +49,6 @@ const centerIcon = L.divIcon({
   popupAnchor: [0, -26]
 });
 
-// Custom Marker Icon
-const customMarkerIcon = L.divIcon({
-  className: 'custom-marker-icon',
-  html: `
-    <div style="
-      width: 30px; 
-      height: 30px; 
-      background-color: #2196F3; 
-      border-radius: 50%; 
-      display: flex; 
-      align-items: center; 
-      justify-content: center; 
-      color: white; 
-      box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-    ">
-      📍
-    </div>
-  `,
-  iconSize: [30, 30],
-  iconAnchor: [15, 15]
-});
 
 function NoPopupMarker({ position, children, ...props }) {
   const markerRef = useRef(null);
@@ -171,6 +150,56 @@ function RecenterMap({ position, zoom }) {
   return null;
 }
 
+const groupColors = {
+  sahn: '#4caf50',       // سبز
+  eyvan: '#2196f3',      // آبی
+  ravaq: '#9c27b0',      // بنفش
+  masjed: '#ff9800',     // نارنجی
+  madrese: '#3f51b5',
+  khadamat: '#607d8b',
+  elmi: '#00bcd4',
+  cemetery: '#795548',
+  other: '#757575'
+};
+
+const functionIcons = {
+  door: '🚪',
+  connection: '🔗',
+  elevator: '🛗',
+  escalator: '↕️',
+  ramp: '♿',
+  stairs: '🪜',
+  service: '🚾',
+  other: '📍'
+};
+
+
+function getCompositeIcon(group, nodeFunction) {
+  const color = groupColors[group] || '#999';
+  const icon = functionIcons[nodeFunction] || '📌';
+
+  return L.divIcon({
+    className: 'custom-group-icon',
+    html: `
+      <div style="
+        width: 35px;
+        height: 35px;
+        background-color: ${color};
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 18px;
+        font-weight: bold;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      ">${icon}</div>
+    `,
+    iconSize: [30, 30],
+    iconAnchor: [15, 15]
+  });
+}
+
 
 const Map = () => {
   // State management
@@ -220,6 +249,8 @@ const Map = () => {
   });
 
 
+
+
   const layerLabels = {
     street: 'Street View',
     esri: 'Esri World Imagery',
@@ -232,7 +263,6 @@ const Map = () => {
     // maptiler: 'https://api.maptiler.com/tiles/satellite/{z}/{x}/{y}.jpg?key=PAu3bNqx2yRLCogX8Zb0',
     eox: "https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2020_3857/default/g/{z}/{y}/{x}.jpg",
   };
-
 
 
   // Storage hooks
@@ -849,7 +879,8 @@ const Map = () => {
           <NoPopupMarker
             key={marker.id}
             position={marker.position}
-            icon={getMarkerIcon(marker.data.type)}
+            // icon={getMarkerIcon(marker.data.type)}
+            icon={getCompositeIcon(marker.data?.group, marker.data?.nodeFunction)}
             onClick={() => handleMarkerClick(marker)}
             eventHandlers={{
               click: () => handleMarkerClick(marker)

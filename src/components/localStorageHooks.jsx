@@ -187,12 +187,15 @@ const exportMapData = (format = 'geojson') => {
               coordinates: [polygon.coordinates.map(c => [c[1], c[0]])], // GeoJSON polygons: array of LinearRings [lng,lat]
             },
             properties: {
+              ...(polygon.data || {}),
               name: polygon.name,
               description: polygon.description,
-              type: polygon.type,
-              timestamp: polygon.timestamp,
-              transportModes: polygon.transportModes || [],
+              group: polygon.group || '',
+              subGroup: polygon.subGroup || '',
+              types: polygon.types || '',
               gender: polygon.gender || '',
+              transportModes: polygon.services || [],
+              timestamp: polygon.timestamp,
               restrictedTimes: polygon.restrictedTimes || {},
             }
           }))

@@ -32,12 +32,12 @@ export default function CompassStatus() {
         <>
           <WarningAmberIcon sx={{ mr: 1 }} />
           {error || "کالیبراسیون سنسور مورد نیاز است."}
-          <Typography
+          {/* <Typography
             variant="body2"
             sx={{ display: "inline", ml: 1, fontWeight: "normal" }}
           >
             <span>گوشی را به شکل عدد <b>۸</b> انگلیسی تکان دهید</span>
-          </Typography>
+          </Typography> */}
         </>
       )}
     </Box>

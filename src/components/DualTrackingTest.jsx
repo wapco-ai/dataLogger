@@ -9,6 +9,8 @@ import ExploreIcon from '@mui/icons-material/Explore';
 import BlockIcon from '@mui/icons-material/Block';
 import TextSnippetIcon from '@mui/icons-material/TextSnippet';
 import ListAltIcon from '@mui/icons-material/ListAlt';
+import { Button } from "@mui/material";
+import { DRHeaderControls } from "./DRHeaderControls";
 // import useCompassCalibration from '../hooks/useCompassCalibration';
 import CompassStatus from "./CompassStatus"; // مسیر مناسب را تنظیم کن
 import L from "leaflet";
@@ -114,7 +116,8 @@ function AutoRecenter({ gps, dr, mode }) {
 
 export default function DualTrackingTest({ mode, actions, mapHeight }) {
     // wrap the hook’s start so we can also flip followMode → 'gps'
-    const { tracking, points, start: hookStart, stop } = useDualTracking();
+    // const { tracking, points, start: hookStart, stop } = useDualTracking();
+    const { tracking, points, start: hookStart, stop, calibrateHeadingOffset, offset } = useDualTracking();
     const start = () => { hookStart(); setFollowMode("gps"); };
     const lastGps = points.length ? points[points.length - 1].gps : null;
     const lastDr = points.length ? points[points.length - 1].dr : null;
@@ -173,11 +176,17 @@ export default function DualTrackingTest({ mode, actions, mapHeight }) {
 
     return (
         <Box sx={{ height: "100%", display: "flex", flexDirection: "column", direction: "rtl" }}>
-            <Box sx={{ textAlign: "center", py: 1 }}>
+            <DRHeaderControls
+                    calibrateHeadingOffset={calibrateHeadingOffset}
+                    offset={offset}
+                    compassStatus="سنسور قطب‌نما کالیبره است" // یا هر پیام دلخواه
+                />
+            {/* <Box sx={{ textAlign: "center", py: 1 }}>
                 <Typography variant="h6" fontSize={15}>مسیرآزمایشی مقایسه GPS و Dead Reckoning</Typography>
-            </Box>
+            </Box> */}
 
             <Box sx={{ display: "flex", justifyContent: "center", gap: 2, pb: 1 }}>
+                
                 <Tooltip title={tracking ? "پایان مسیر" : "شروع مسیر"}>
                     <IconButton color={tracking ? "error" : "success"} onClick={tracking ? stop : start} size="large">
                         {tracking ? <StopIcon /> : <PlayArrowIcon />}
@@ -199,8 +208,9 @@ export default function DualTrackingTest({ mode, actions, mapHeight }) {
                         </IconButton>
                     </span>
                 </Tooltip>
+
             </Box>
-            <CompassStatus />
+            {/* <CompassStatus /> */}
             <Box sx={{ flex: 1, minHeight: 0 }}>
                 <MapContainer
                     center={gpsPath.length ? gpsPath[gpsPath.length - 1] : [36.2972, 59.6067]}
@@ -231,7 +241,7 @@ export default function DualTrackingTest({ mode, actions, mapHeight }) {
                     )}
                     <AutoRecenter gps={lastGps} dr={lastDr} mode={followMode} />
                 </MapContainer>
-                
+
 
                 <Box
                     sx={{
