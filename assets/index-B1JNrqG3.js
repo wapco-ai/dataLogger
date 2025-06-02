@@ -82,7 +82,7 @@ Offset: ${Math.round(n)}°`)},offset:r}}function pr({calibrateHeadingOffset:t,of
         align-items: center;
         justify-content: center;
         color: white;
-        font-size: 16px;
+        font-size: 18px;
         font-weight: bold;
         box-shadow: 0 2px 6px rgba(0,0,0,0.3);
       ">${u}</div>
