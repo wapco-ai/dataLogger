@@ -40,6 +40,29 @@ export default function CompassCalibrationPage() {
 
   const navigate = useNavigate();
 
+
+  const [northSet, setNorthSet] = useState(false);
+  const [northAngle, setNorthAngle] = useState(Number(localStorage.getItem('northAngle')) || null);
+  // مدل جدید: کاربر گوشی را رو به شمال واقعی می‌گیرد و ثبت می‌کند
+  const handleSetNorth = () => {
+    if (!window.DeviceOrientationEvent) {
+      setError('سنسور جهت‌یابی پشتیبانی نمی‌شود.');
+      return;
+    }
+    alert('گوشی را به سمت شمال واقعی نگه دارید و تایید را بزنید.');
+
+    const onOrientation = (event) => {
+      const angle = event.alpha;
+      setNorthAngle(angle);
+      localStorage.setItem('northAngle', angle);
+      setNorthSet(true);
+      setError('');
+      window.removeEventListener('deviceorientation', onOrientation);
+    };
+    window.addEventListener('deviceorientation', onOrientation, { once: true });
+  };
+
+
   // ثابت و همیشه بدون وابستگی به state:
   function handleOrientation(event) {
     if (!runningRef.current) return;
@@ -281,12 +304,35 @@ export default function CompassCalibrationPage() {
         >
           {running ? "⏹️ توقف" : "🎯 شروع بررسی"}
         </Button>
+        {/* دکمه جدید ثبت شمال فیزیکی */}
+        <Button fullWidth size="large" variant="contained" color="info"
+          onClick={handleSetNorth}
+          sx={{ fontWeight: "bold", fontSize: "16px", py: 1.3 }}>
+          🧭 ثبت شمال فیزیکی
+        </Button>
+        {/* راهنمای کالیبراسیون */}
         <Button fullWidth size="large" variant="contained" color="warning"
           onClick={() => setShowGuide((g) => !g)}
           sx={{ fontWeight: "bold", fontSize: "16px", py: 1.3 }}>
           🔄 راهنمای کالیبراسیون
         </Button>
       </Box>
+      
+      {northSet &&
+        <Box mt={1} mb={2}>
+          <Typography color="success.main" fontWeight="bold" align="center">
+            جهت شمال با موفقیت ثبت شد! (زاویه فعلی: {northAngle && northAngle.toFixed(1)}°)
+          </Typography>
+        </Box>
+      }
+      {northAngle && !northSet &&
+        <Box mt={1} mb={2}>
+          <Typography color="info.main" fontWeight="bold" align="center">
+            زاویه شمال قبلاً ثبت شده است: {northAngle.toFixed(1)}°
+          </Typography>
+        </Box>
+      }
+
 
       {/* راهنما */}
       <Collapse in={showGuide} sx={{ mb: 2 }}>

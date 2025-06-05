@@ -201,6 +201,45 @@ function getCompositeIcon(group, nodeFunction) {
 }
 
 
+function NorthIcon() {
+  const [northAngle, setNorthAngle] = useState(Number(localStorage.getItem('northAngle')) || 0);
+
+  useEffect(() => {
+    const onStorage = () => setNorthAngle(Number(localStorage.getItem('northAngle')) || 0);
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
+  // آیکون ساده با چرخش
+  return (
+    <div style={{
+      position: 'absolute',
+      bottom: 120,
+      right: 25,
+      zIndex: 1200,
+      width: 44,
+      height: 44,
+      background: 'rgba(255,255,255,0.78)',
+      borderRadius: '50%',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      boxShadow: '0 2px 6px rgba(0,0,0,0.13)'
+    }}>
+      <div style={{
+        width: 28,
+        height: 28,
+        transform: `rotate(${-northAngle}deg)`,
+        transition: 'transform 0.3s'
+      }}>
+        <svg viewBox="0 0 32 32">
+          <polygon points="16,4 19,21 16,16 13,21" fill="red" />
+          <circle cx="16" cy="16" r="14" fill="none" stroke="#999" strokeWidth="2" />
+        </svg>
+      </div>
+    </div>
+  );
+}
+
 const Map = () => {
   // State management
   const [position, setPosition] = useState([36.2972, 59.6067]);
@@ -927,7 +966,7 @@ const Map = () => {
         })}
 
       </MapContainer>
-
+      <NorthIcon />
       <BottomControlPanel
         isTracking={isTracking}
         onStartTracking={startTracking}

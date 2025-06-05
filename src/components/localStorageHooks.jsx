@@ -410,7 +410,6 @@ const importMapData = (file) => {
       }
 
       // 1) Your custom JSON format
-      // 1) Your custom JSON format
       if (importedData.version && importedData.markers && importedData.paths) {
         // 1. Read what’s already stored
         const existingMarkers = JSON.parse(localStorage.getItem('mapMarkers') || '[]');

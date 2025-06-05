@@ -1,4 +1,8 @@
 import { useState, useRef, useEffect } from "react";
+const getNorthAngle = () => {
+  const value = localStorage.getItem('northAngle');
+  return value ? Number(value) : 0;
+};
 
 // Helper: compute new position in meters based on heading and distance
 function moveLatLng({ latitude, longitude }, headingDeg, distanceMeters) {
@@ -7,8 +11,8 @@ function moveLatLng({ latitude, longitude }, headingDeg, distanceMeters) {
   const newLat = latitude + (distanceMeters * Math.cos(dRad)) / R * (180 / Math.PI);
   const newLng = longitude +
     (distanceMeters * Math.sin(dRad)) /
-      (R * Math.cos(latitude * Math.PI / 180)) *
-      (180 / Math.PI);
+    (R * Math.cos(latitude * Math.PI / 180)) *
+    (180 / Math.PI);
   return { latitude: newLat, longitude: newLng };
 }
 
@@ -56,7 +60,9 @@ export function useDualTracking() {
 
           // حرفه‌ای: از offset ثبت‌شده توسط کاربر استفاده کن
           // دقت کن: ابتدا heading را معکوس می‌کنی (360-alpha) بعد offset را کم می‌کنی
-          const correctedHeading = (360 - headingRef.current - offset + 360) % 360;
+          // const correctedHeading = (360 - headingRef.current - offset + 360) % 360;
+          const northAngle = getNorthAngle();
+          const correctedHeading = (360 - headingRef.current - (northAngle || offset) + 360) % 360;
           dr = moveLatLng(dr, correctedHeading, moved);
         }
         lastDrRef.current = dr;
