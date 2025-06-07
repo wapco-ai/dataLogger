@@ -17,7 +17,154 @@ function moveLatLng({ latitude, longitude }, headingDeg, distanceMeters) {
   };
 }
 
-// 🔥 تشخیص حرکت کاملاً مستقل از GPS - فقط از سنسورهای داخلی
+// 🔥 کلاس گام‌شمار مبتنی بر شتاب‌سنج - اضافه کردن در ابتدای فایل
+class AccelerometerStepCounter {
+  constructor() {
+    this.steps = 0;
+    this.lastStepTime = 0;
+    this.accelerationHistory = [];
+    this.threshold = 1.5; // آستانه تشخیص گام
+    this.minStepInterval = 300; // حداقل فاصله بین دو گام (میلی‌ثانیه)
+    this.windowSize = 10; // اندازه پنجره برای محاسبه میانگین
+  }
+
+  // اضافه کردن داده شتاب جدید
+  addAccelerationData(acceleration) {
+    if (!acceleration || !acceleration.x || !acceleration.y || !acceleration.z) {
+      return this.steps;
+    }
+
+    const currentTime = Date.now();
+    
+    // محاسبه مقدار کل شتاب
+    const totalAccel = Math.sqrt(
+      acceleration.x ** 2 + 
+      acceleration.y ** 2 + 
+      acceleration.z ** 2
+    );
+
+    // اضافه کردن به تاریخچه
+    this.accelerationHistory.push({
+      value: totalAccel,
+      timestamp: currentTime
+    });
+
+    // نگه داشتن فقط آخرین داده‌ها
+    if (this.accelerationHistory.length > this.windowSize) {
+      this.accelerationHistory.shift();
+    }
+
+    // برای تشخیص گام نیاز به حداقل 5 نمونه داریم
+    if (this.accelerationHistory.length < 5) {
+      return this.steps;
+    }
+
+    // تشخیص peak (قله) در سیگنال شتاب
+    const isStep = this.detectStep(currentTime);
+    
+    if (isStep) {
+      this.steps++;
+      this.lastStepTime = currentTime;
+      console.log(`👟 گام جدید تشخیص داده شد - کل: ${this.steps}`);
+    }
+
+    return this.steps;
+  }
+
+  // تشخیص گام از روی الگوی شتاب
+  detectStep(currentTime) {
+    // بررسی حداقل فاصله زمانی بین گام‌ها
+    if (currentTime - this.lastStepTime < this.minStepInterval) {
+      return false;
+    }
+
+    const recentData = this.accelerationHistory.slice(-5);
+    if (recentData.length < 5) return false;
+
+    // محاسبه میانگین
+    const average = recentData.reduce((sum, item) => sum + item.value, 0) / recentData.length;
+    
+    // تشخیص peak: مقدار وسط باید از دو طرف بیشتر باشد
+    const middleIndex = Math.floor(recentData.length / 2);
+    const middleValue = recentData[middleIndex].value;
+    
+    // شرایط تشخیص گام:
+    // 1. قله باید از آستانه بیشتر باشد
+    // 2. قله باید از میانگین بیشتر باشد
+    // 3. مقادیر کناری باید کمتر باشد
+    const isPeak = middleValue > (average + this.threshold) &&
+                   middleValue > recentData[middleIndex - 1].value &&
+                   middleValue > recentData[middleIndex + 1].value;
+
+    return isPeak;
+  }
+
+  // ریست کردن شمارنده
+  reset() {
+    this.steps = 0;
+    this.lastStepTime = 0;
+    this.accelerationHistory = [];
+    console.log('🔄 گام‌شمار ریست شد');
+  }
+
+  // دریافت تعداد گام‌ها
+  getStepCount() {
+    return this.steps;
+  }
+
+  // تنظیم حساسیت
+  setSensitivity(sensitivity) {
+    // sensitivity بین 0.5 تا 2.0
+    this.threshold = 1.0 + sensitivity;
+    console.log(`🎛️ حساسیت گام‌شمار: ${this.threshold}`);
+  }
+}
+
+// 🔥 ایجاد instance گام‌شمار
+const stepCounter = new AccelerometerStepCounter();
+
+// 🔥 تابع اصلاح‌شده getStepCount - جایگزین تابع قبلی
+async function getStepCount(acceleration = null) {
+  try {
+    // اول سعی می‌کنیم از API های native استفاده کنیم
+    if ('Pedometer' in window) {
+      const pedometer = new window.Pedometer();
+      const nativeSteps = await pedometer.getStepCount();
+      if (nativeSteps !== null) {
+        console.log(`📱 Native step count: ${nativeSteps}`);
+        return nativeSteps;
+      }
+    }
+    
+    // برای Android - Web API
+    if (navigator.permissions) {
+      const permission = await navigator.permissions.query({ name: 'accelerometer' });
+      if (permission.state === 'granted' && 'StepCounter' in window) {
+        const nativeSteps = await window.StepCounter.getStepCount();
+        if (nativeSteps !== null) {
+          console.log(`🤖 Android step count: ${nativeSteps}`);
+          return nativeSteps;
+        }
+      }
+    }
+    
+    // 🔥 استفاده از گام‌شمار مبتنی بر شتاب‌سنج
+    if (acceleration) {
+      const calculatedSteps = stepCounter.addAccelerationData(acceleration);
+      return calculatedSteps;
+    }
+    
+    // بازگشت آخرین مقدار محاسبه‌شده
+    return stepCounter.getStepCount();
+    
+  } catch (error) {
+    console.warn('Step counter error:', error);
+    // در صورت خطا، از گام‌شمار داخلی استفاده می‌کنیم
+    return stepCounter.getStepCount();
+  }
+}
+
+// 🔥 تشخیص حرکت کاملاً مستقل از GPS - فقط از سنسورهای داخلی - بدون تغییر
 function detectMovementFromSensors(acceleration, rotationRate, stepCount, previousStepCount, timeInterval) {
   // ترکیب چند روش برای تشخیص دقیق‌تر حرکت
   
@@ -66,16 +213,18 @@ function detectMovementFromSensors(acceleration, rotationRate, stepCount, previo
     }
   }
   
-  // 3. تشخیص از گام‌شمار
+  // 🔥 3. تشخیص از گام‌شمار محاسبه‌شده - اصلاح شده
   let stepMovement = { isMoving: false, confidence: 0, steps: 0 };
+  
+  // اگر stepCount از تابع جدید دریافت شده باشد
   if (stepCount !== null && previousStepCount !== null && timeInterval > 0) {
     const newSteps = stepCount - previousStepCount;
     const stepsPerSecond = newSteps / timeInterval;
     
-    if (newSteps > 0 && stepsPerSecond > 0.3) { // حداقل یک گام در 3 ثانیه
+    if (newSteps > 0 && stepsPerSecond > 0.1) { // حداقل یک گام در 10 ثانیه
       stepMovement = {
         isMoving: true,
-        confidence: Math.min(stepsPerSecond / 2, 1), // 2 گام در ثانیه = اعتماد کامل
+        confidence: Math.min(stepsPerSecond / 1.5, 1), // 1.5 گام در ثانیه = اعتماد کامل
         steps: newSteps
       };
     }
@@ -93,7 +242,7 @@ function detectMovementFromSensors(acceleration, rotationRate, stepCount, previo
   // محاسبه سرعت تخمینی بر اساس سنسورها
   let estimatedSpeed = 0;
   if (isMoving) {
-    if (stepMovement.isMoving) {
+    if (stepMovement.isMoving && stepMovement.steps > 0) {
       // سرعت بر اساس گام: حدوداً 0.7 متر بر گام، متوسط انسان
       const avgStepLength = 0.7; // متر
       estimatedSpeed = stepMovement.steps * avgStepLength / timeInterval;
@@ -119,29 +268,6 @@ function detectMovementFromSensors(acceleration, rotationRate, stepCount, previo
       steps: stepMovement
     }
   };
-}
-
-// تابع دریافت تعداد گام (اگر در دسترس باشد)
-async function getStepCount() {
-  try {
-    if ('Pedometer' in window) {
-      const pedometer = new window.Pedometer();
-      return await pedometer.getStepCount();
-    }
-    
-    // برای Android - Web API
-    if (navigator.permissions) {
-      const permission = await navigator.permissions.query({ name: 'accelerometer' });
-      if (permission.state === 'granted' && 'StepCounter' in window) {
-        return await window.StepCounter.getStepCount();
-      }
-    }
-    
-    return null;
-  } catch (error) {
-    console.warn('Step counter not available:', error);
-    return null;
-  }
 }
 
 export function useDualTracking() {
@@ -222,8 +348,8 @@ export function useDualTracking() {
             isInitializedRef.current = true;
             setWaitingForAccuracy(false);
             
-            // دریافت تعداد گام اولیه
-            const initialStepCount = await getStepCount();
+            // 🔥 دریافت تعداد گام اولیه با acceleration
+            const initialStepCount = await getStepCount(accelerationRef.current);
             stepCountRef.current = initialStepCount;
             previousStepCountRef.current = initialStepCount;
             
@@ -270,8 +396,8 @@ export function useDualTracking() {
         if (lastTimestampRef.current) {
           const dt = (timestamp - lastTimestampRef.current) / 1000; // ثانیه
           
-          // دریافت تعداد گام جدید
-          const currentStepCount = await getStepCount();
+          // 🔥 دریافت تعداد گام جدید با acceleration
+          const currentStepCount = await getStepCount(accelerationRef.current);
           if (currentStepCount !== null) {
             previousStepCountRef.current = stepCountRef.current;
             stepCountRef.current = currentStepCount;
@@ -422,6 +548,9 @@ export function useDualTracking() {
     setTracking(true);
     setWaitingForAccuracy(true);
     setCurrentAccuracy(999);
+    
+    // 🔥 ریست کردن گام‌شمار - اضافه شده
+    stepCounter.reset();
     
     // ریست کردن تمام متغیرها
     lastDrRef.current = null;
