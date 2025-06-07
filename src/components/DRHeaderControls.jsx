@@ -4,6 +4,15 @@ import ExploreIcon from "@mui/icons-material/Explore";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 
 export function DRHeaderControls({ calibrateHeadingOffset, offset = 0, compassStatus = "سنسور قطب‌نما کالیبره است" }) {
+  // کنترل سرعت
+  const {
+    movementType,
+    setMovementSpeed,
+    getAvailableSpeeds,
+    detectedSpeed
+  } = useDualTracking();
+
+
   return (
     <Box sx={{
       px: 1.5, pt: 1, pb: 0.5,
@@ -42,7 +51,7 @@ export function DRHeaderControls({ calibrateHeadingOffset, offset = 0, compassSt
               </Typography>
             </Paper>
           </Tooltip>
-          
+
           <Chip
             label={`افست فعلی: ${Math.round(offset)}°`}
             sx={{
@@ -51,6 +60,14 @@ export function DRHeaderControls({ calibrateHeadingOffset, offset = 0, compassSt
               height: 32, borderRadius: 2
             }}
           />
+          // UI برای انتخاب سرعت
+          <Select value={movementType} onChange={(e) => setMovementSpeed(e.target.value)}>
+            {getAvailableSpeeds().map(item => (
+              <MenuItem key={item.key} value={item.key}>
+                {item.label} ({item.kmh} km/h)
+              </MenuItem>
+            ))}
+          </Select>
         </Box>
       )}
 

@@ -7,6 +7,7 @@ import Map from './components/Map';
 import NotFound from './components/NotFound';
 import CompassCalibrationPage from './components/CompassCalibrationPage';
 
+
 function App() {
   const { hasUpdate, updateApp } = usePwaUpdate();
   return (

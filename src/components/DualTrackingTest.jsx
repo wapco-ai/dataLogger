@@ -28,7 +28,7 @@ function calcDrHeading(path) {
         Math.sin(lat1Rad) * Math.cos(lat2Rad) * Math.cos(deltaLng);
 
     let bearing = Math.atan2(y, x) * 180 / Math.PI;
-    
+
     // ✅ تصحیح فرمول - تبدیل از mathematical bearing به geographic bearing
     bearing = (bearing + 360) % 360;
 
@@ -50,7 +50,7 @@ function calcGpsMovementDirection(points) {
         Math.sin(lat1Rad) * Math.cos(lat2Rad) * Math.cos(deltaLng);
 
     let bearing = Math.atan2(y, x) * 180 / Math.PI;
-    
+
     // ✅ همین تصحیح برای GPS هم
     bearing = (bearing + 360) % 360;
 
@@ -190,6 +190,8 @@ export default function DualTrackingTest({ mode, actions, mapHeight }) {
         return currentHeading;
     };
 
+    
+    
     // دریافت جهت فعلی سنسور
     useEffect(() => {
         const handleOrientation = (event) => {
@@ -261,13 +263,13 @@ export default function DualTrackingTest({ mode, actions, mapHeight }) {
                     <Polyline positions={drPath} color="orange" weight={4} opacity={0.7} dashArray="6 8" />
                     {lastGps && <Circle center={[lastGps.latitude, lastGps.longitude]} radius={6} color="blue" />}
                     {lastDr && <Circle center={[lastDr.latitude, lastDr.longitude]} radius={6} color="orange" />}
-                    
+
                     {/* ✅ فلش DR با جهت کالیبره‌شده */}
                     {drPath.length > 0 && (
                         <DrArrowMarker
                             position={drPath[drPath.length - 1]}
                             heading={getCalibratedHeading()} // ✅ استفاده از جهت کالیبره‌شده
-                            // heading={calcDrHeading(drPath)} // استفاده از جهت محاسبه شده مسیر DR
+                        // heading={calcDrHeading(drPath)} // استفاده از جهت محاسبه شده مسیر DR
                         />
                     )}
                     <AutoRecenter gps={lastGps} dr={lastDr} mode={followMode} />
@@ -312,7 +314,7 @@ export default function DualTrackingTest({ mode, actions, mapHeight }) {
                     </Tooltip>
                 </Box>
             </Box>
-            
+
             {/* پنل دیباگ */}
             <DebugPanel
                 points={points}
