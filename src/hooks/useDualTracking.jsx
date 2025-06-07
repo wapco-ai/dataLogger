@@ -33,14 +33,6 @@ function smoothValue(newValue, history, maxHistory = 5) {
   return history.reduce((sum, val) => sum + val, 0) / history.length;
 }
 
-// تشخیص حالت حرکت
-function detectMovementMode(speed) {
-  if (speed < 0.3) return 'stationary';
-  if (speed < 2) return 'walking';
-  if (speed < 8) return 'running';
-  return 'vehicle';
-}
-
 export function useDualTracking() {
   const [tracking, setTracking] = useState(false);
   const [points, setPoints] = useState([]);
@@ -50,6 +42,17 @@ export function useDualTracking() {
   const lastTimestampRef = useRef(null);
   const headingRef = useRef(0);
   const headingHistoryRef = useRef([]);
+
+  // ⚙️ تنظیمات سرعت ثابت (بدون وابستگی به GPS)
+  const [movementType, setMovementType] = useState('default');
+  
+  const FIXED_SPEED_SETTINGS = {
+    walking: 1.4,      // 1.4 m/s = 5.04 km/h
+    running: 3.0,      // 3.0 m/s = 10.8 km/h  
+    cycling: 5.0,      // 5.0 m/s = 18 km/h
+    driving: 8.3,      // 8.3 m/s = 30 km/h
+    default: 1.2       // 1.2 m/s = 4.32 km/h
+  };
 
   // Listen to device orientation
   useEffect(() => {
@@ -82,36 +85,36 @@ export function useDualTracking() {
 
         let dr = lastDrRef.current;
         
+        // ✅ تعریف متغیرها در scope اصلی
+        let usedSpeed = 0;
+        let correctedHeading = headingRef.current;
+        let moved = 0;
+        
         if (!dr) {
           // نقطه شروع - موقعیت اولیه
           dr = { latitude, longitude, timestamp };
         } else if (lastTimestampRef.current) {
           const dt = (timestamp - lastTimestampRef.current) / 1000; // ثانیه
           
-          // استفاده از سرعت GPS یا سرعت پیش‌فرض
-          let usedSpeed = typeof speed === "number" && speed > 0 ? speed : 0.8;
-          const movementMode = detectMovementMode(usedSpeed);
+          // ✅ استفاده از سرعت ثابت (بدون تاثیر GPS speed)
+          usedSpeed = FIXED_SPEED_SETTINGS[movementType] || FIXED_SPEED_SETTINGS.default;
           
-          // تنظیم سرعت بر اساس حالت حرکت
-          if (movementMode === 'stationary') {
-            usedSpeed = 0;
-          }
+          console.log(`🚶 سرعت ثابت: ${usedSpeed} m/s (${(usedSpeed * 3.6).toFixed(1)} km/h), نوع: ${movementType}`);
           
-          const moved = usedSpeed * dt; // متر
+          moved = usedSpeed * dt; // متر
 
           // 🔧 محاسبه صحیح جهت تصحیح‌شده
           const northAngle = getNorthAngle();
-          let correctedHeading = headingRef.current;
           
           if (northAngle !== null) {
-            // ✅ فرمول صحیح برای تصحیح جهت
-            // correctedHeading = (headingRef.current - northAngle + 360) % 360;
+            // ✅ فرمول صحیح برای تصحیح جهت (همسو با NorthAngleArrow)
             correctedHeading = (northAngle - headingRef.current + 360) % 360;
           }
           
-          // ✅ حرکت حتی برای مسافت‌های کوچک‌تر
-          if (moved > 0.05) { // حداقل 5 سانتی‌متر
+          // ✅ حرکت مداوم (حتی برای مسافت‌های کوچک)
+          if (moved > 0.01) { // حداقل 1 سانتی‌متر
             dr = moveLatLng(dr, correctedHeading, moved);
+            console.log(`📍 حرکت: ${moved.toFixed(3)}m در جهت ${correctedHeading.toFixed(1)}°`);
           }
         }
         
@@ -126,14 +129,20 @@ export function useDualTracking() {
               latitude, 
               longitude, 
               accuracy, 
-              speed, 
+              speed, // GPS speed را برای مقایسه نگه می‌داریم
               heading, 
               timestamp 
             },
             dr: { 
               latitude: dr.latitude, 
               longitude: dr.longitude, 
-              timestamp 
+              timestamp,
+              // ✅ اضافه کردن metadata برای debug
+              usedSpeed: usedSpeed,
+              movementType: movementType,
+              correctedHeading: correctedHeading,
+              rawHeading: headingRef.current,
+              moved: moved
             },
           },
         ]);
@@ -155,7 +164,7 @@ export function useDualTracking() {
       lastTimestampRef.current = null;
       headingHistoryRef.current = [];
     };
-  }, [tracking]);
+  }, [tracking, movementType]); // ✅ اضافه کردن movementType به dependencies
 
   const start = () => {
     setPoints([]);
@@ -177,7 +186,16 @@ export function useDualTracking() {
         
         setPoints([{
           gps: { latitude, longitude, accuracy, speed, heading, timestamp },
-          dr: { latitude, longitude, timestamp }
+          dr: { 
+            latitude, 
+            longitude, 
+            timestamp,
+            usedSpeed: 0,
+            movementType: movementType,
+            correctedHeading: headingRef.current,
+            rawHeading: headingRef.current,
+            moved: 0
+          }
         }]);
       },
       (err) => console.warn("Initial GPS fetch failed:", err),
@@ -207,13 +225,88 @@ export function useDualTracking() {
     return northAngle || 0;
   };
 
+  // ✅ توابع جدید برای کنترل سرعت
+  const setMovementSpeed = (type) => {
+    if (FIXED_SPEED_SETTINGS[type]) {
+      setMovementType(type);
+      console.log(`🎯 نوع حرکت تغییر کرد: ${type} (${FIXED_SPEED_SETTINGS[type]} m/s = ${(FIXED_SPEED_SETTINGS[type] * 3.6).toFixed(1)} km/h)`);
+    } else {
+      console.warn(`❌ نوع حرکت نامعتبر: ${type}`);
+    }
+  };
+
+  const getCurrentSpeed = () => {
+    return FIXED_SPEED_SETTINGS[movementType] || FIXED_SPEED_SETTINGS.default;
+  };
+
+  const getAvailableSpeeds = () => {
+    return Object.keys(FIXED_SPEED_SETTINGS).map(key => ({
+      key,
+      speed: FIXED_SPEED_SETTINGS[key],
+      kmh: (FIXED_SPEED_SETTINGS[key] * 3.6).toFixed(1),
+      label: {
+        walking: 'پیاده‌روی',
+        running: 'دویدن', 
+        cycling: 'دوچرخه‌سواری',
+        driving: 'رانندگی',
+        default: 'پیش‌فرض'
+      }[key] || key
+    }));
+  };
+
+  // ✅ تابع برای دریافت جهت کالیبره‌شده
+  const getCalibratedHeading = () => {
+    const northAngle = getNorthAngle();
+    if (northAngle !== null) {
+      return (northAngle - headingRef.current + 360) % 360;
+    }
+    return headingRef.current;
+  };
+
+  // ✅ دریافت آخرین DR heading
+  const getDrHeading = () => {
+    if (points.length > 0) {
+      return points[points.length - 1]?.dr?.correctedHeading || 0;
+    }
+    return getCalibratedHeading();
+  };
+
+  // ✅ محاسبه جهت حرکت GPS
+  const getMovementDirection = () => {
+    if (points.length < 2) return 0;
+    
+    const current = points[points.length - 1]?.gps;
+    const previous = points[points.length - 2]?.gps;
+    
+    if (!current || !previous) return 0;
+    
+    const dLat = current.latitude - previous.latitude;
+    const dLng = current.longitude - previous.longitude;
+    
+    if (dLat === 0 && dLng === 0) return 0;
+    
+    let bearing = Math.atan2(dLng, dLat) * 180 / Math.PI;
+    return (bearing + 360) % 360;
+  };
+
   return {
     tracking,
     points,
     start,
     stop,
     calibrateHeadingOffset,
-    offset: getOffset()
+    offset: getOffset(),
+    // ✅ توابع کنترل سرعت
+    movementType,
+    setMovementSpeed,
+    getCurrentSpeed,
+    getAvailableSpeeds,
+    fixedSpeedSettings: FIXED_SPEED_SETTINGS,
+    // ✅ توابع جهت‌یابی
+    getCalibratedHeading,
+    getDrHeading,
+    getMovementDirection,
+    currentHeading: headingRef.current
   };
 }
 
