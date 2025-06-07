@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { useDualTracking } from "../hooks/useDualTracking";
 import { MapContainer, TileLayer, Polyline, Circle, Marker, useMap } from "react-leaflet";
@@ -67,7 +66,7 @@ function DrArrowMarker({ position, heading }) {
         iconAnchor: [24, 24],
         html: `
        <div style="
-         transform: rotate(${-heading}deg);
+         transform: rotate(${heading}deg);
           width: 48px; height: 48px;
          display: flex;
          align-items: center;
@@ -188,7 +187,7 @@ export default function DualTrackingTest({ mode, actions, mapHeight }) {
         if (northAngle !== 0) {
             return (currentHeading - northAngle + 360) % 360;
         }
-        return currentHeading;
+        return -currentHeading;
     };
 
     // دریافت جهت فعلی سنسور

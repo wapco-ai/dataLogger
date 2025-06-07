@@ -110,7 +110,7 @@ export function useDualTracking() {
           
           // ✅ حرکت حتی برای مسافت‌های کوچک‌تر
           if (moved > 0.05) { // حداقل 5 سانتی‌متر
-            dr = moveLatLng(dr, correctedHeading, moved);
+            dr = moveLatLng(dr, -correctedHeading, moved);
           }
         }
         
