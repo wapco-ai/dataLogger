@@ -129,6 +129,9 @@ export function useDualTracking() {
   const lastTimestampRef = useRef(null);
   const headingRef = useRef(0);
   const isInitializedRef = useRef(false); // 🔥 پرچم اولیه‌سازی
+  // 🔥 وضعیت دسترسی به حسگرها
+  const orientationPermissionRef = useRef(false);
+  const motionPermissionRef = useRef(false);
   
   // 🔥 متغیرهای تشخیص حرکت
   const accelerationRef = useRef(null);
@@ -147,19 +150,9 @@ export function useDualTracking() {
         headingRef.current = event.alpha;
       }
     };
-    
-    // درخواست مجوز orientation در iOS
-    if (typeof DeviceOrientationEvent !== 'undefined' && 
-        typeof DeviceOrientationEvent.requestPermission === 'function') {
-      DeviceOrientationEvent.requestPermission().then(permissionState => {
-        if (permissionState === 'granted') {
-          window.addEventListener("deviceorientation", handleOrientation, true);
-        }
-      }).catch(console.warn);
-    } else {
-      window.addEventListener("deviceorientation", handleOrientation, true);
-    }
-    
+
+    window.addEventListener("deviceorientation", handleOrientation, true);
+
     return () => window.removeEventListener("deviceorientation", handleOrientation, true);
   }, []);
 
@@ -169,19 +162,9 @@ export function useDualTracking() {
       accelerationRef.current = event.accelerationIncludingGravity;
       rotationRateRef.current = event.rotationRate;
     };
-    
-    // درخواست مجوز motion در iOS
-    if (typeof DeviceMotionEvent !== 'undefined' && 
-        typeof DeviceMotionEvent.requestPermission === 'function') {
-      DeviceMotionEvent.requestPermission().then(permissionState => {
-        if (permissionState === 'granted') {
-          window.addEventListener("devicemotion", handleMotion, true);
-        }
-      }).catch(console.warn);
-    } else {
-      window.addEventListener("devicemotion", handleMotion, true);
-    }
-    
+
+    window.addEventListener("devicemotion", handleMotion, true);
+
     return () => window.removeEventListener("devicemotion", handleMotion, true);
   }, []);
 
@@ -375,7 +358,30 @@ export function useDualTracking() {
     };
   }, [tracking]);
 
-  const start = () => {
+  const start = async () => {
+    // درخواست مجوز حسگرها در صورت نیاز
+    if (typeof DeviceOrientationEvent !== 'undefined' &&
+        typeof DeviceOrientationEvent.requestPermission === 'function' &&
+        !orientationPermissionRef.current) {
+      try {
+        const state = await DeviceOrientationEvent.requestPermission();
+        orientationPermissionRef.current = state === 'granted';
+      } catch (err) {
+        console.warn(err);
+      }
+    }
+
+    if (typeof DeviceMotionEvent !== 'undefined' &&
+        typeof DeviceMotionEvent.requestPermission === 'function' &&
+        !motionPermissionRef.current) {
+      try {
+        const state = await DeviceMotionEvent.requestPermission();
+        motionPermissionRef.current = state === 'granted';
+      } catch (err) {
+        console.warn(err);
+      }
+    }
+
     setPoints([]);
     setTracking(true);
     setWaitingForAccuracy(true);
