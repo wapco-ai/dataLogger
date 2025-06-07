@@ -638,9 +638,9 @@ export function useDualTracking() {
           if (finalIsMoving && moved > 0.01) { // حداقل 1 سانتی‌متر
             // محاسبه جهت تصحیح‌شده
             let pureHeading = headingRef.current;
-            const northOffset = localStorage.getItem('northOffset'); // ✅ تغییر نام
-            if (northOffset && Number(northOffset) !== 0) {
-              pureHeading = (headingRef.current - Number(northOffset) + 360) % 360; // ✅ فرمول صحیح
+            const northAngle = localStorage.getItem('northAngle');
+            if (northAngle && Number(northAngle) !== 0) {
+              pureHeading = (Number(northAngle) - headingRef.current + 360) % 360;
             }
 
             dr = moveLatLng(dr, pureHeading, moved);
@@ -883,11 +883,8 @@ export function useDualTracking() {
 
       if (quality.isAcceptable) {
         // ذخیره اطلاعات کاملتر
-        // 🔥 تصحیح منطق کالیبراسیون
         const calibrationData = {
-          // ✅ ذخیره offset به جای زاویه خام
-          northOffset: average, // این offset است که باید اعمال شود
-          calibrationAngle: average, // زاویه‌ای که در آن لحظه کالیبراسیون گوشی داشت
+          northAngle: average,
           quality: quality.label,
           standardDeviation: standardDeviation,
           timestamp: Date.now(),
@@ -898,8 +895,7 @@ export function useDualTracking() {
           }
         };
 
-        // ✅ ذخیره درست
-        localStorage.setItem('northOffset', average.toString()); // تغییر نام
+        localStorage.setItem('northAngle', average.toString());
         localStorage.setItem('calibrationData', JSON.stringify(calibrationData));
         window.dispatchEvent(new Event('storage'));
 
@@ -986,8 +982,8 @@ export function useDualTracking() {
   };
 
   const getOffset = () => {
-    const northOffset = localStorage.getItem('northOffset'); // ✅ تغییر نام
-    return (northOffset && Number(northOffset) !== 0) ? Number(northOffset) : 0;
+    const northAngle = localStorage.getItem('northAngle');
+    return (northAngle && Number(northAngle) !== 0) ? Number(northAngle) : 0;
   };
 
   return {

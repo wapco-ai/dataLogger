@@ -196,13 +196,13 @@ export default function DualTrackingTest({ mode, actions, mapHeight }) {
 
     // ✅ محاسبه جهت کالیبره‌شده برای فلش DR
     const getCalibratedHeading = () => {
-        const northOffset = Number(localStorage.getItem('northOffset')) || 0;
-        if (northOffset !== 0) {
-            // ✅ فرمول صحیح کالیبراسیون
-            return (currentHeading - northOffset + 360) % 360;
+        const northAngle = Number(localStorage.getItem('northAngle')) || 0;
+        if (northAngle !== 0) {
+            return (northAngle - currentHeading + 360) % 360;
         }
         return currentHeading;
     };
+
     // دریافت جهت فعلی سنسور
     useEffect(() => {
         const handleOrientation = (event) => {
