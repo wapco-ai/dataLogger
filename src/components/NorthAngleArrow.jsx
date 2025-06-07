@@ -35,11 +35,11 @@ export default function NorthAngleArrow() {
   return (
     <div style={{
       position: 'absolute',
-      bottom: 120,
-      right: 20,
+      bottom: 100,
+      right: 5,
       zIndex: 1200,
-      width: 44,
-      height: 44,
+      width: 50,
+      height: 50,
       background: 'rgba(255,255,255,0.82)',
       borderRadius: '50%',
       display: 'flex',
@@ -48,8 +48,8 @@ export default function NorthAngleArrow() {
       boxShadow: '0 2px 6px rgba(0,0,0,0.13)'
     }}>
       <div style={{
-        width: 28,
-        height: 28,
+        width: 40,
+        height: 40,
         transform: `rotate(${rotation}deg)`,
         transition: 'transform 0.3s ease-out'
       }}>

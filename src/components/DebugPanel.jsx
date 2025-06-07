@@ -1,11 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
-import { 
-  Box, 
-  Paper, 
-  Typography, 
-  IconButton, 
-  Collapse, 
+import {
+  Box,
+  Paper,
+  Typography,
+  IconButton,
+  Collapse,
   Divider,
   Grid,
   Chip,
@@ -35,8 +35,8 @@ import SensorsIcon from '@mui/icons-material/Sensors';
 import DirectionsWalkIcon from '@mui/icons-material/DirectionsWalk';
 import SpeedIcon from '@mui/icons-material/Speed';
 
-export default function DebugPanel({ 
-  points = [], 
+export default function DebugPanel({
+  points = [],
   tracking = false,
   currentHeading = 0,
   drHeading = 0,
@@ -47,7 +47,8 @@ export default function DebugPanel({
   // 🔥 تابع‌های جدید برای کنترل حساسیت
   adjustStepSensitivity,
   setCustomStepSensitivity,
-  getStepDebugInfo
+  getStepDebugInfo,
+  onExpandedChange
 }) {
   const [expanded, setExpanded] = useState(false);
   const [deviceOrientation, setDeviceOrientation] = useState({
@@ -67,7 +68,12 @@ export default function DebugPanel({
     lastValues: []
   });
   const [sensitivityMode, setSensitivityMode] = useState('preset'); // 'preset' یا 'custom'
-
+  // 🔥 اطلاع دادن به والد از تغییر وضعیت پنل
+  useEffect(() => {
+    if (onExpandedChange) {
+      onExpandedChange(expanded);
+    }
+  }, [expanded, onExpandedChange]);
   // دریافت داده‌های سنسور به‌صورت Real-time
   useEffect(() => {
     const handleOrientation = (event) => {
@@ -97,13 +103,13 @@ export default function DebugPanel({
   // محاسبه مقادیر کلیدی
   const northAngle = Number(localStorage.getItem('northAngle')) || 0;
   const rawCompassHeading = deviceOrientation.alpha;
-  
-  const calibratedHeading = northAngle !== 0 ? 
+
+  const calibratedHeading = northAngle !== 0 ?
     (northAngle - rawCompassHeading + 360) % 360 : rawCompassHeading;
-  
+
   const lastGps = points.length ? points[points.length - 1]?.gps : null;
   const lastDr = points.length ? points[points.length - 1]?.dr : null;
-  
+
   // اطلاعات سنسوری از آخرین نقطه
   const sensorData = lastDr?.sensorMovement || {
     isMoving: false,
@@ -115,25 +121,25 @@ export default function DebugPanel({
       steps: { isMoving: false, confidence: 0, steps: 0 }
     }
   };
-  
+
   // محاسبه سرعت و فاصله
   const currentSpeed = lastDr?.finalSpeed || 0;
   const gpsAccuracy = lastGps?.accuracy || 0;
   const stepCount = lastDr?.stepCount || 0;
-  
+
   // محاسبه انحراف بین GPS و DR
   const calculateDeviation = () => {
     if (!lastGps || !lastDr) return 0;
-    
+
     const R = 6371000; // شعاع زمین
     const dLat = (lastDr.latitude - lastGps.latitude) * Math.PI / 180;
     const dLng = (lastDr.longitude - lastGps.longitude) * Math.PI / 180;
-    
-    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-              Math.cos(lastGps.latitude * Math.PI / 180) * Math.cos(lastDr.latitude * Math.PI / 180) *
-              Math.sin(dLng/2) * Math.sin(dLng/2);
-    
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lastGps.latitude * Math.PI / 180) * Math.cos(lastDr.latitude * Math.PI / 180) *
+      Math.sin(dLng / 2) * Math.sin(dLng / 2);
+
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   };
 
   const deviation = calculateDeviation();
@@ -165,13 +171,13 @@ export default function DebugPanel({
       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5, fontSize: '0.7rem' }}>
         {label}
       </Typography>
-      <Chip 
+      <Chip
         label={`${value}${unit}`}
         color={color}
         variant="outlined"
         size={size}
-        sx={{ 
-          fontWeight: 'bold', 
+        sx={{
+          fontWeight: 'bold',
           fontFamily: 'monospace',
           fontSize: '0.75rem'
         }}
@@ -235,12 +241,12 @@ export default function DebugPanel({
             boxShadow: '0 -4px 20px rgba(0,0,0,0.15)'
           }}
         >
-          
+
           {/* 🎯 هدر کامپکت */}
-          <Box 
-            sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
               px: 2,
               py: 1,
               bgcolor: tracking ? 'success.light' : 'grey.100',
@@ -249,18 +255,18 @@ export default function DebugPanel({
             }}
             onClick={() => setExpanded(!expanded)}
           >
-            
+
             <BugReportIcon sx={{ mr: 1, fontSize: '1.2rem' }} />
             <Typography variant="h7" sx={{ flex: 1, fontWeight: 'bold', fontSize: '0.9rem' }}>
               Debug
             </Typography>
-            
+
             {/* دکمه start/stop */}
             {onStartStop && (
               <Tooltip title={tracking ? "پایان مسیر" : "شروع مسیر"}>
-                <IconButton 
-                  size="medium" 
-                  color={tracking ? "error" : "success"} 
+                <IconButton
+                  size="medium"
+                  color={tracking ? "error" : "success"}
                   onClick={(e) => {
                     e.stopPropagation();
                     onStartStop();
@@ -271,43 +277,43 @@ export default function DebugPanel({
                 </IconButton>
               </Tooltip>
             )}
-            
+
             {/* اطلاعات خلاصه در هدر */}
             <Box sx={{ display: 'flex', gap: 1, mr: 2 }}>
               {/* وضعیت حرکت */}
-              <Chip 
+              <Chip
                 label={sensorData.isMoving ? "🏃" : "⏸️"}
                 color={sensorData.isMoving ? "success" : "default"}
                 size="small"
                 sx={{ fontSize: '0.8rem', minWidth: '35px' }}
               />
-              
+
               {/* سرعت */}
-              <Chip 
+              <Chip
                 label={`${currentSpeed.toFixed(1)}m/s`}
                 color={currentSpeed > 0 ? "info" : "default"}
                 size="small"
                 sx={{ fontSize: '0.7rem', minWidth: '55px' }}
               />
-              
+
               {/* انحراف */}
-              <Chip 
+              <Chip
                 label={`${deviation.toFixed(1)}m`}
                 color={deviation < 5 ? "success" : deviation < 15 ? "warning" : "error"}
                 size="small"
                 sx={{ fontSize: '0.7rem', minWidth: '50px' }}
               />
-              
+
               {/* تعداد گام‌ها */}
-              <Chip 
+              <Chip
                 label={`${stepCount}👟`}
                 color="secondary"
                 size="small"
                 sx={{ fontSize: '0.7rem', minWidth: '40px' }}
               />
-              
+
               {/* تعداد نقاط */}
-              <Chip 
+              <Chip
                 label={`${points.length}`}
                 color="primary"
                 size="small"
@@ -317,12 +323,12 @@ export default function DebugPanel({
 
             {/* وضعیت کالیبراسیون */}
             <Tooltip title={isCalibrated ? "کالیبره شده" : "نیاز به کالیبراسیون"}>
-              {isCalibrated ? 
-                <CheckCircleIcon color="success" sx={{ mr: 1 }} /> : 
+              {isCalibrated ?
+                <CheckCircleIcon color="success" sx={{ mr: 1 }} /> :
                 <WarningIcon color="warning" sx={{ mr: 1 }} />
               }
             </Tooltip>
-            
+
             {/* دکمه باز/بسته */}
             <IconButton size="medium">
               {expanded ? <KeyboardArrowDownIcon /> : <KeyboardArrowUpIcon />}
@@ -331,22 +337,22 @@ export default function DebugPanel({
 
           {/* 🎯 محتوای کامل */}
           <Collapse in={expanded} timeout={300}>
-            <Box sx={{ 
-              p: 2, 
-              maxHeight: 'calc(80vh - 60px)', 
+            <Box sx={{
+              p: 2,
+              maxHeight: 'calc(80vh - 60px)',
               overflowY: 'auto',
               '&::-webkit-scrollbar': { width: '6px' },
               '&::-webkit-scrollbar-track': { background: '#f1f1f1', borderRadius: '3px' },
               '&::-webkit-scrollbar-thumb': { background: '#c1c1c1', borderRadius: '3px' }
             }}>
-              
+
               {/* 🔥 بخش تنظیم حساسیت گام‌شمار */}
               <Box sx={{ mb: 3 }}>
                 <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
                   <SpeedIcon sx={{ mr: 1 }} />
                   تنظیم حساسیت گام‌شمار
                 </Typography>
-                
+
                 {/* انتخاب نوع تنظیم */}
                 <Grid container spacing={2} sx={{ mb: 2 }}>
                   <Grid item xs={6}>
@@ -416,21 +422,21 @@ export default function DebugPanel({
                 {/* نمایش وضعیت فعلی گام‌شمار */}
                 <Grid container spacing={2} sx={{ mb: 2 }}>
                   <Grid item xs={3}>
-                    <ValueDisplay 
+                    <ValueDisplay
                       label="گام‌های کل"
                       value={stepDebugInfo.steps || 0}
                       color="success"
                     />
                   </Grid>
                   <Grid item xs={3}>
-                    <ValueDisplay 
+                    <ValueDisplay
                       label="آستانه فعلی"
                       value={(stepDebugInfo.threshold || 0).toFixed(2)}
                       color="info"
                     />
                   </Grid>
                   <Grid item xs={3}>
-                    <ValueDisplay 
+                    <ValueDisplay
                       label="فاصله گام"
                       value={stepDebugInfo.minInterval || 0}
                       unit="ms"
@@ -438,7 +444,7 @@ export default function DebugPanel({
                     />
                   </Grid>
                   <Grid item xs={3}>
-                    <ValueDisplay 
+                    <ValueDisplay
                       label="داده‌های نگهداری"
                       value={stepDebugInfo.historySize || 0}
                       color="secondary"
@@ -453,7 +459,7 @@ export default function DebugPanel({
 
                 {/* راهنمایی */}
                 <Alert severity="info" sx={{ fontSize: '0.8rem' }}>
-                  💡 <strong>راهنما:</strong> اگر گام‌ها کم شمارش می‌شوند، حساسیت را بالا ببرید. 
+                  💡 <strong>راهنما:</strong> اگر گام‌ها کم شمارش می‌شوند، حساسیت را بالا ببرید.
                   اگر خیلی زیاد شمارش می‌شوند، حساسیت را کم کنید.
                 </Alert>
               </Box>
@@ -466,10 +472,10 @@ export default function DebugPanel({
                   <TuneIcon sx={{ mr: 1 }} />
                   کالیبراسیون قطب‌نما
                 </Typography>
-                
+
                 <Grid container spacing={2} sx={{ mb: 2 }}>
                   <Grid item xs={3}>
-                    <ValueDisplay 
+                    <ValueDisplay
                       label="North Angle"
                       value={northAngle.toFixed(1)}
                       unit="°"
@@ -477,7 +483,7 @@ export default function DebugPanel({
                     />
                   </Grid>
                   <Grid item xs={3}>
-                    <ValueDisplay 
+                    <ValueDisplay
                       label="خام قطب‌نما"
                       value={rawCompassHeading.toFixed(1)}
                       unit="°"
@@ -485,7 +491,7 @@ export default function DebugPanel({
                     />
                   </Grid>
                   <Grid item xs={3}>
-                    <ValueDisplay 
+                    <ValueDisplay
                       label="تصحیح‌شده"
                       value={calibratedHeading.toFixed(1)}
                       unit="°"
@@ -493,7 +499,7 @@ export default function DebugPanel({
                     />
                   </Grid>
                   <Grid item xs={3}>
-                    <ValueDisplay 
+                    <ValueDisplay
                       label="DR Heading"
                       value={drHeading.toFixed(1)}
                       unit="°"
@@ -501,7 +507,74 @@ export default function DebugPanel({
                     />
                   </Grid>
                 </Grid>
+                {/* 🔥 نمایش وضعیت کالیبراسیون */}
+                <Box sx={{ mb: 2 }}>
+                  {(() => {
+                    try {
+                      const calibrationData = localStorage.getItem('calibrationData');
+                      if (!calibrationData) {
+                        return (
+                          <Alert severity="warning" sx={{ fontSize: '0.8rem' }}>
+                            ⚠️ هیچ کالیبراسیون معتبری یافت نشد
+                          </Alert>
+                        );
+                      }
 
+                      const data = JSON.parse(calibrationData);
+                      const ageHours = (Date.now() - data.timestamp) / (1000 * 60 * 60);
+                      const isOld = ageHours > 24;
+                      const isLowQuality = data.standardDeviation > 8;
+
+                      return (
+                        <Box sx={{
+                          bgcolor: isOld || isLowQuality ? 'warning.light' : 'success.light',
+                          p: 1.5,
+                          borderRadius: 2
+                        }}>
+                          <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
+                            📊 وضعیت کالیبراسیون فعلی:
+                          </Typography>
+                          <Grid container spacing={1} sx={{ mb: 1 }}>
+                            <Grid item xs={3}>
+                              <Typography variant="caption" sx={{ fontSize: '0.7rem' }}>
+                                کیفیت: <strong>{data.quality || 'نامشخص'}</strong>
+                              </Typography>
+                            </Grid>
+                            <Grid item xs={3}>
+                              <Typography variant="caption" sx={{ fontSize: '0.7rem' }}>
+                                قدمت: <strong>{ageHours.toFixed(1)}h</strong>
+                              </Typography>
+                            </Grid>
+                            <Grid item xs={3}>
+                              <Typography variant="caption" sx={{ fontSize: '0.7rem' }}>
+                                دقت: <strong>±{data.standardDeviation?.toFixed(1)}°</strong>
+                              </Typography>
+                            </Grid>
+                            <Grid item xs={3}>
+                              <Typography variant="caption" sx={{ fontSize: '0.7rem' }}>
+                                نمونه‌ها: <strong>{data.samples || 0}</strong>
+                              </Typography>
+                            </Grid>
+                          </Grid>
+
+                          {(isOld || isLowQuality) && (
+                            <Alert severity="warning" sx={{ fontSize: '0.7rem', mt: 1 }}>
+                              💡 توصیه: کالیبراسیون مجدد انجام دهید
+                            </Alert>
+                          )}
+                        </Box>
+                      );
+                    } catch (error) {
+                      return (
+                        <Alert severity="error" sx={{ fontSize: '0.8rem' }}>
+                          ❌ خطا در خواندن داده‌های کالیبراسیون
+                        </Alert>
+                      );
+                    }
+                  })()}
+                </Box>
+
+                {/* دکمه کالیبراسیون */}
                 {/* دکمه کالیبراسیون */}
                 {calibrateHeadingOffset && (
                   <Button
@@ -511,8 +584,19 @@ export default function DebugPanel({
                     size="large"
                     startIcon={<ExploreIcon />}
                     onClick={() => {
-                      const newOffset = calibrateHeadingOffset();
-                      alert(`✅ جهت شمال کالیبره شد: ${newOffset.toFixed(1)}°`);
+                      const result = calibrateHeadingOffset();
+
+                      // 🔥 مدیریت حالت‌های مختلف return
+                      if (result === null) {
+                        // در حال پردازش - نمونه‌گیری شروع شده
+                        alert('🔄 کالیبراسیون شروع شد. لطفاً 2 ثانیه ثابت بمانید...');
+                      } else if (result === 0) {
+                        // کالیبراسیون ناموفق
+                        alert('❌ کالیبراسیون ناموفق. لطفاً دوباره تلاش کنید.');
+                      } else {
+                        // کالیبراسیون موفق
+                        alert(`✅ جهت شمال کالیبره شد: ${result.toFixed(1)}°`);
+                      }
                     }}
                     sx={{ mb: 2, py: 1.5 }}
                   >
@@ -528,24 +612,24 @@ export default function DebugPanel({
                 <SensorsIcon sx={{ mr: 1 }} />
                 سنسورهای تشخیص حرکت (مستقل از GPS)
               </Typography>
-              
+
               <Grid container spacing={2} sx={{ mb: 2 }}>
                 <Grid item xs={4}>
-                  <ValueDisplay 
+                  <ValueDisplay
                     label="🏃 حرکت کلی"
                     value={sensorData.isMoving ? "فعال" : "متوقف"}
                     color={sensorData.isMoving ? "success" : "default"}
                   />
                 </Grid>
                 <Grid item xs={4}>
-                  <ValueDisplay 
+                  <ValueDisplay
                     label="اعتماد"
                     value={sensorData.confidence.toFixed(2)}
                     color={sensorData.confidence > 0.7 ? "success" : sensorData.confidence > 0.3 ? "warning" : "error"}
                   />
                 </Grid>
                 <Grid item xs={4}>
-                  <ValueDisplay 
+                  <ValueDisplay
                     label="سرعت تخمینی"
                     value={sensorData.estimatedSpeed.toFixed(2)}
                     unit="m/s"
@@ -606,7 +690,7 @@ export default function DebugPanel({
               </Typography>
               <Grid container spacing={2} sx={{ mb: 2 }}>
                 <Grid item xs={3}>
-                  <ValueDisplay 
+                  <ValueDisplay
                     label="سرعت نهایی"
                     value={currentSpeed.toFixed(2)}
                     unit="m/s"
@@ -614,7 +698,7 @@ export default function DebugPanel({
                   />
                 </Grid>
                 <Grid item xs={3}>
-                  <ValueDisplay 
+                  <ValueDisplay
                     label="حرکت آخر"
                     value={(lastDr?.moved || 0).toFixed(3)}
                     unit="m"
@@ -622,7 +706,7 @@ export default function DebugPanel({
                   />
                 </Grid>
                 <Grid item xs={3}>
-                  <ValueDisplay 
+                  <ValueDisplay
                     label="انحراف از GPS"
                     value={deviation.toFixed(1)}
                     unit="m"
@@ -630,7 +714,7 @@ export default function DebugPanel({
                   />
                 </Grid>
                 <Grid item xs={3}>
-                  <ValueDisplay 
+                  <ValueDisplay
                     label="روش تشخیص"
                     value={lastDr?.movementMethod?.slice(0, 8) || "ندارد"}
                     color="secondary"
@@ -641,12 +725,12 @@ export default function DebugPanel({
               <Divider sx={{ my: 2 }} />
 
               {/* GPS برای مقایسه */}
-              <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 1.5, display: 'flex', alignItems: 'center'  }}>
+              <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 1.5, display: 'flex', alignItems: 'center' }}>
                 📡 GPS (فقط برای مقایسه)
               </Typography>
               <Grid container spacing={2} sx={{ mb: 2 }}>
                 <Grid item xs={3}>
-                  <ValueDisplay 
+                  <ValueDisplay
                     label="سرعت GPS"
                     value={(lastGps?.speed || 0).toFixed(1)}
                     unit="m/s"
@@ -654,7 +738,7 @@ export default function DebugPanel({
                   />
                 </Grid>
                 <Grid item xs={3}>
-                  <ValueDisplay 
+                  <ValueDisplay
                     label="دقت GPS"
                     value={gpsAccuracy.toFixed(1)}
                     unit="m"
@@ -662,7 +746,7 @@ export default function DebugPanel({
                   />
                 </Grid>
                 <Grid item xs={3}>
-                  <ValueDisplay 
+                  <ValueDisplay
                     label="جهت GPS"
                     value={movementDirection.toFixed(1)}
                     unit="°"
@@ -670,7 +754,7 @@ export default function DebugPanel({
                   />
                 </Grid>
                 <Grid item xs={3}>
-                  <ValueDisplay 
+                  <ValueDisplay
                     label="تعداد نقاط"
                     value={points.length}
                     color="primary"
@@ -724,3 +808,4 @@ export default function DebugPanel({
     </>
   );
 }
+

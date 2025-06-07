@@ -12,8 +12,6 @@ import {
 } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet-rotate';
-console.log(L.control.rotate); // باید تابع باشد
-console.log(L.version);
 import 'leaflet/dist/leaflet.css';
 import '../styles/index.css';
 import NodeModal from './NodeModal';
@@ -51,6 +49,7 @@ const centerIcon = L.divIcon({
 });
 
 
+
 function NoPopupMarker({ position, children, ...props }) {
   const markerRef = useRef(null);
 
@@ -84,27 +83,6 @@ const categoryColors = {
   other: '#6d4c41', // brown
 };
 
-// factory to build a 30×30px circle icon, lettered by type
-function getMarkerIcon(type) {
-  const color = categoryColors[type] || '#757575'; // grey fallback
-  const letter = type ? type[0].toUpperCase() : '';
-  return L.divIcon({
-    className: 'category-marker-icon',
-    html: `
-      <div style="
-        width:30px; height:30px;
-        background:${color};
-        border-radius:50%;
-        display:flex; align-items:center; justify-content:center;
-        color:white; font-size:16px; font-weight:bold;
-        box-shadow:0 2px 5px rgba(0,0,0,0.3);
-      ">${letter}</div>
-    `,
-    iconSize: [30, 30],
-    iconAnchor: [15, 15],  // bottom‐center of the circle
-  });
-}
-
 // Component to listen for map drag/zoom and report center
 function ManualMarkerOverlay({ onPositionChange }) {
   const map = useMap();
@@ -124,9 +102,6 @@ function ManualMarkerOverlay({ onPositionChange }) {
 
   return null;
 }
-
-
-
 
 // Map Click Event Component
 function MapClickHandler({ onMapClick, manualMode }) {
@@ -879,7 +854,6 @@ const Map = () => {
           <NoPopupMarker
             key={marker.id}
             position={marker.position}
-            // icon={getMarkerIcon(marker.data.type)}
             icon={getCompositeIcon(marker.data?.group, marker.data?.nodeFunction)}
             onClick={() => handleMarkerClick(marker)}
             eventHandlers={{
@@ -927,7 +901,7 @@ const Map = () => {
         })}
 
       </MapContainer>
-      <NorthAngleArrow />
+      {!drPanelOpen && <NorthAngleArrow />}
       <BottomControlPanel
         isTracking={isTracking}
         onStartTracking={startTracking}

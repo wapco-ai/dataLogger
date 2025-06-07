@@ -10,6 +10,8 @@ import TextSnippetIcon from '@mui/icons-material/TextSnippet';
 import ListAltIcon from '@mui/icons-material/ListAlt';
 import DebugPanel from "./DebugPanel";
 import L from "leaflet";
+import NorthAngleArrow from './NorthAngleArrow';
+
 
 // ✅ فرمول تصحیح شده برای محاسبه جهت
 function calcDrHeading(path) {
@@ -156,12 +158,12 @@ function calculateDistance(lat1, lng1, lat2, lng2) {
 
 export default function DualTrackingTest({ mode, actions, mapHeight }) {
     // 🔥 دریافت توابع جدید برای کنترل حساسیت گام‌شمار
-    const { 
-        tracking, 
-        points, 
-        start: hookStart, 
-        stop, 
-        calibrateHeadingOffset, 
+    const {
+        tracking,
+        points,
+        start: hookStart,
+        stop,
+        calibrateHeadingOffset,
         offset,
         adjustStepSensitivity,
         setCustomStepSensitivity,
@@ -184,6 +186,8 @@ export default function DualTrackingTest({ mode, actions, mapHeight }) {
 
     const [followMode, setFollowMode] = useState(mode === "mapOnly" ? "gps" : "off");
     const [currentHeading, setCurrentHeading] = useState(0);
+    const [debugPanelExpanded, setDebugPanelExpanded] = useState(false);
+
     const mapRef = useRef(null);
 
     // محاسبه جهت‌های مختلف برای Debug Panel
@@ -198,7 +202,7 @@ export default function DualTrackingTest({ mode, actions, mapHeight }) {
         }
         return currentHeading;
     };
-    
+
     // دریافت جهت فعلی سنسور
     useEffect(() => {
         const handleOrientation = (event) => {
@@ -271,7 +275,7 @@ export default function DualTrackingTest({ mode, actions, mapHeight }) {
                     {lastGps && <Circle center={[lastGps.latitude, lastGps.longitude]} radius={6} color="blue" />}
                     {lastDr && <Circle center={[lastDr.latitude, lastDr.longitude]} radius={6} color="orange" />}
 
-                    {/* ✅ فلش DR با جهت کالیبره‌شده */}
+                    {/* ✅ فلش DR با جهت کالیبره‌شده - فقط وقتی پنل دیباگ بسته است */}
                     {drPath.length > 0 && (
                         <DrArrowMarker
                             position={drPath[drPath.length - 1]}
@@ -280,45 +284,47 @@ export default function DualTrackingTest({ mode, actions, mapHeight }) {
                     )}
                     <AutoRecenter gps={lastGps} dr={lastDr} mode={followMode} />
                 </MapContainer>
-
-                {/* دکمه Follow */}
-                <Box
-                    sx={{
-                        position: "absolute",
-                        bottom: 46,
-                        right: 5,
-                        zIndex: 1000,
-                        backgroundColor: "#fff",
-                        borderRadius: "50%",
-                        boxShadow: "0 2px 8px rgba(0,0,0,0.2)"
-                    }}
-                >
-                    <Tooltip title={`دنبال‌کردن: ${followMode === 'gps' ? 'GPS' : followMode === 'dr' ? 'DR' : 'خاموش'}`}>
-                        <IconButton
-                            onClick={() =>
-                                setFollowMode((prev) =>
-                                    prev === "off" ? "gps" : prev === "gps" ? "dr" : "off"
-                                )
-                            }
-                            color={
-                                followMode === "off"
-                                    ? "default"
-                                    : followMode === "gps"
-                                        ? "primary"
-                                        : "warning"
-                            }
-                            size="large"
-                        >
-                            {followMode === "gps" ? (
-                                <GpsFixedIcon />
-                            ) : followMode === "dr" ? (
-                                <ExploreIcon />
-                            ) : (
-                                <BlockIcon />
-                            )}
-                        </IconButton>
-                    </Tooltip>
-                </Box>
+                {/* دکمه Follow - فقط وقتی پنل دیباگ بسته است */}
+                {!debugPanelExpanded && (<NorthAngleArrow />)}
+                {!debugPanelExpanded && (
+                    <Box
+                        sx={{
+                            position: "absolute",
+                            bottom: 46,
+                            right: 5,
+                            zIndex: 1000,
+                            backgroundColor: "#fff",
+                            borderRadius: "50%",
+                            boxShadow: "0 2px 8px rgba(0,0,0,0.2)"
+                        }}
+                    >
+                        <Tooltip title={`دنبال‌کردن: ${followMode === 'gps' ? 'GPS' : followMode === 'dr' ? 'DR' : 'خاموش'}`}>
+                            <IconButton
+                                onClick={() =>
+                                    setFollowMode((prev) =>
+                                        prev === "off" ? "gps" : prev === "gps" ? "dr" : "off"
+                                    )
+                                }
+                                color={
+                                    followMode === "off"
+                                        ? "default"
+                                        : followMode === "gps"
+                                            ? "primary"
+                                            : "warning"
+                                }
+                                size="large"
+                            >
+                                {followMode === "gps" ? (
+                                    <GpsFixedIcon />
+                                ) : followMode === "dr" ? (
+                                    <ExploreIcon />
+                                ) : (
+                                    <BlockIcon />
+                                )}
+                            </IconButton>
+                        </Tooltip>
+                    </Box>
+                )}
             </Box>
 
             {/* 🔥 پنل دیباگ با props های جدید */}
@@ -335,6 +341,7 @@ export default function DualTrackingTest({ mode, actions, mapHeight }) {
                 adjustStepSensitivity={adjustStepSensitivity}
                 setCustomStepSensitivity={setCustomStepSensitivity}
                 getStepDebugInfo={getStepDebugInfo}
+                onExpandedChange={setDebugPanelExpanded}
             />
         </Box>
     );

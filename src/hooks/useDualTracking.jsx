@@ -1,6 +1,7 @@
 
 import { useState, useRef, useEffect } from "react";
-
+let calibrationSamples = [];
+let isCalibrating = false;
 // Helper: محاسبه موقعیت جدید بر اساس جهت و فاصله (متر)
 function moveLatLng({ latitude, longitude }, headingDeg, distanceMeters) {
   const R = 6378137; // شعاع زمین به متر
@@ -683,17 +684,165 @@ export function useDualTracking() {
     console.log("🛑 توقف Dead Reckoning");
   };
 
-  // کالیبراسیون دستی
+  // 🔥 تابع کالیبراسیون بهبود یافته - جایگزین تابع قبلی در خط 549
   const calibrateHeadingOffset = () => {
-    const currentHeading = headingRef.current;
-    if (currentHeading !== null && currentHeading !== undefined) {
-      localStorage.setItem('northAngle', currentHeading.toString());
-      window.dispatchEvent(new Event('storage'));
-      console.log(`🧭 کالیبراسیون: ${currentHeading.toFixed(1)}°`);
-      return currentHeading;
+    if (isCalibrating) {
+      console.log('⏳ کالیبراسیون در حال انجام...');
+      return null;
     }
-    return 0;
+
+    const currentHeading = headingRef.current;
+    if (currentHeading === null || currentHeading === undefined) {
+      console.warn('⚠️ داده‌های قطب‌نما در دسترس نیست');
+      return 0;
+    }
+
+    console.log('🔄 شروع کالیبراسیون چندنمونه‌ای...');
+    isCalibrating = true;
+    calibrationSamples = [];
+
+    // نمونه‌گیری 10 بار در 2 ثانیه
+    const sampleCount = 10;
+    const sampleInterval = 200; // میلی‌ثانیه
+    let sampleIndex = 0;
+
+    const collectSample = () => {
+      const heading = headingRef.current;
+      if (heading !== null && heading !== undefined) {
+        calibrationSamples.push(heading);
+        console.log(`📊 نمونه ${sampleIndex + 1}/${sampleCount}: ${heading.toFixed(1)}°`);
+        sampleIndex++;
+
+        if (sampleIndex < sampleCount) {
+          setTimeout(collectSample, sampleInterval);
+        } else {
+          finishCalibration();
+        }
+      } else {
+        console.warn('⚠️ نمونه‌گیری ناموفق - تکرار...');
+        setTimeout(collectSample, sampleInterval);
+      }
+    };
+
+    const finishCalibration = () => {
+      isCalibrating = false;
+
+      if (calibrationSamples.length < 5) {
+        console.error('❌ نمونه‌های کافی جمع‌آوری نشد');
+        return 0;
+      }
+
+      // حذف نمونه‌های پرت (outliers)
+      const sorted = [...calibrationSamples].sort((a, b) => a - b);
+      const q1 = sorted[Math.floor(sorted.length * 0.25)];
+      const q3 = sorted[Math.floor(sorted.length * 0.75)];
+      const iqr = q3 - q1;
+      const lowerBound = q1 - 1.5 * iqr;
+      const upperBound = q3 + 1.5 * iqr;
+
+      const filteredSamples = calibrationSamples.filter(
+        sample => sample >= lowerBound && sample <= upperBound
+      );
+
+      // محاسبه میانگین و انحراف معیار
+      const average = filteredSamples.reduce((sum, val) => sum + val, 0) / filteredSamples.length;
+      const variance = filteredSamples.reduce((sum, val) => sum + Math.pow(val - average, 2), 0) / filteredSamples.length;
+      const standardDeviation = Math.sqrt(variance);
+
+      console.log(`📊 آمار کالیبراسیون:`);
+      console.log(`   - نمونه‌های کل: ${calibrationSamples.length}`);
+      console.log(`   - نمونه‌های معتبر: ${filteredSamples.length}`);
+      console.log(`   - میانگین: ${average.toFixed(2)}°`);
+      console.log(`   - انحراف معیار: ${standardDeviation.toFixed(2)}°`);
+
+      // بررسی کیفیت کالیبراسیون
+      const quality = getCalibrationQuality(standardDeviation);
+      console.log(`🎯 کیفیت کالیبراسیون: ${quality.label}`);
+
+      if (quality.isAcceptable) {
+        // ذخیره اطلاعات کاملتر
+        const calibrationData = {
+          northAngle: average,
+          quality: quality.label,
+          standardDeviation: standardDeviation,
+          timestamp: Date.now(),
+          samples: filteredSamples.length,
+          deviceInfo: {
+            userAgent: navigator.userAgent.substring(0, 50),
+            platform: navigator.platform
+          }
+        };
+
+        localStorage.setItem('northAngle', average.toString());
+        localStorage.setItem('calibrationData', JSON.stringify(calibrationData));
+        window.dispatchEvent(new Event('storage'));
+
+        console.log(`✅ کالیبراسیون موفق: ${average.toFixed(1)}° (${quality.label})`);
+        return average;
+      } else {
+        console.warn(`⚠️ کالیبراسیون ناپایدار (SD: ${standardDeviation.toFixed(1)}°) - لطفاً دوباره تلاش کنید`);
+        return 0;
+      }
+    };
+
+    // شروع نمونه‌گیری
+    setTimeout(collectSample, 100);
+    return null; // در حال پردازش
   };
+
+  // 🔥 تابع ارزیابی کیفیت کالیبراسیون
+  const getCalibrationQuality = (standardDeviation) => {
+    if (standardDeviation < 2) {
+      return { label: 'عالی', isAcceptable: true, color: 'success' };
+    } else if (standardDeviation < 5) {
+      return { label: 'خوب', isAcceptable: true, color: 'info' };
+    } else if (standardDeviation < 10) {
+      return { label: 'متوسط', isAcceptable: true, color: 'warning' };
+    } else {
+      return { label: 'ضعیف', isAcceptable: false, color: 'error' };
+    }
+  };
+
+  // 🔥 تابع بررسی صحت کالیبراسیون - اضافه کردن به انتهای فایل
+  const validateStoredCalibration = () => {
+    try {
+      const calibrationData = localStorage.getItem('calibrationData');
+      if (!calibrationData) {
+        console.log('⚠️ داده‌های کالیبراسیون یافت نشد');
+        return false;
+      }
+
+      const data = JSON.parse(calibrationData);
+      const ageHours = (Date.now() - data.timestamp) / (1000 * 60 * 60);
+
+      console.log(`📋 بررسی کالیبراسیون ذخیره‌شده:`);
+      console.log(`   - زاویه شمال: ${data.northAngle?.toFixed(1)}°`);
+      console.log(`   - کیفیت: ${data.quality}`);
+      console.log(`   - قدمت: ${ageHours.toFixed(1)} ساعت`);
+      console.log(`   - نمونه‌ها: ${data.samples}`);
+
+      // هشدار اگر کالیبراسیون قدیمی باشد
+      if (ageHours > 24) {
+        console.warn('⚠️ کالیبراسیون قدیمی است - توصیه به کالیبراسیون مجدد');
+        return false;
+      }
+
+      // هشدار اگر کیفیت پایین باشد
+      if (data.standardDeviation > 8) {
+        console.warn('⚠️ کیفیت کالیبراسیون پایین - توصیه به کالیبراسیون مجدد');
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('❌ خطا در بررسی کالیبراسیون:', error);
+      return false;
+    }
+  };
+  const isCalibrationValid = validateStoredCalibration();
+  if (!isCalibrationValid) {
+    console.log('💡 توصیه: کالیبراسیون مجدد قطب‌نما را انجام دهید');
+  }
 
   // API وضعیت
   const getCurrentStatus = () => {
