@@ -31,7 +31,7 @@ function calcDrHeading(path) {
     let bearing = Math.atan2(y, x) * 180 / Math.PI;
     
     // ✅ تصحیح فرمول - تبدیل از mathematical bearing به geographic bearing
-    bearing = (90 - bearing + 360) % 360;
+    bearing = (bearing + 360) % 360;
 
     return bearing;
 }
@@ -53,7 +53,7 @@ function calcGpsMovementDirection(points) {
     let bearing = Math.atan2(y, x) * 180 / Math.PI;
     
     // ✅ همین تصحیح برای GPS هم
-    bearing = (90 - bearing + 360) % 360;
+    bearing = (bearing + 360) % 360;
 
     return bearing;
 }
