@@ -11,7 +11,13 @@ import {
   Chip,
   Button,
   Tooltip,
-  Slide
+  Slide,
+  Slider,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Alert
 } from '@mui/material';
 import BugReportIcon from '@mui/icons-material/BugReport';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
@@ -27,6 +33,7 @@ import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import SensorsIcon from '@mui/icons-material/Sensors';
 import DirectionsWalkIcon from '@mui/icons-material/DirectionsWalk';
+import SpeedIcon from '@mui/icons-material/Speed';
 
 export default function DebugPanel({ 
   points = [], 
@@ -36,7 +43,11 @@ export default function DebugPanel({
   movementDirection = 0,
   calibrateHeadingOffset,
   offset = 0,
-  onStartStop
+  onStartStop,
+  // 🔥 تابع‌های جدید برای کنترل حساسیت
+  adjustStepSensitivity,
+  setCustomStepSensitivity,
+  getStepDebugInfo
 }) {
   const [expanded, setExpanded] = useState(false);
   const [deviceOrientation, setDeviceOrientation] = useState({
@@ -44,6 +55,18 @@ export default function DebugPanel({
     beta: 0,
     gamma: 0
   });
+
+  // 🔥 State های جدید برای کنترل حساسیت
+  const [sensitivityLevel, setSensitivityLevel] = useState('high');
+  const [customSensitivity, setCustomSensitivity] = useState(1.5);
+  const [stepDebugInfo, setStepDebugInfo] = useState({
+    steps: 0,
+    threshold: 0.6,
+    minInterval: 180,
+    historySize: 0,
+    lastValues: []
+  });
+  const [sensitivityMode, setSensitivityMode] = useState('preset'); // 'preset' یا 'custom'
 
   // دریافت داده‌های سنسور به‌صورت Real-time
   useEffect(() => {
@@ -58,6 +81,18 @@ export default function DebugPanel({
     window.addEventListener('deviceorientation', handleOrientation);
     return () => window.removeEventListener('deviceorientation', handleOrientation);
   }, []);
+
+  // 🔥 به‌روزرسانی اطلاعات debug گام‌شمار
+  useEffect(() => {
+    if (getStepDebugInfo) {
+      const interval = setInterval(() => {
+        const debugInfo = getStepDebugInfo();
+        setStepDebugInfo(debugInfo);
+      }, 1000); // هر ثانیه به‌روزرسانی
+
+      return () => clearInterval(interval);
+    }
+  }, [getStepDebugInfo]);
 
   // محاسبه مقادیر کلیدی
   const northAngle = Number(localStorage.getItem('northAngle')) || 0;
@@ -104,6 +139,26 @@ export default function DebugPanel({
   const deviation = calculateDeviation();
   const isCalibrated = northAngle !== 0;
 
+  // 🔥 توابع کنترل حساسیت
+  const handleSensitivityLevelChange = (event) => {
+    const level = event.target.value;
+    setSensitivityLevel(level);
+    if (adjustStepSensitivity) {
+      const result = adjustStepSensitivity(level);
+      setStepDebugInfo(result);
+      console.log(`🎛️ حساسیت تغییر یافت به: ${level}`);
+    }
+  };
+
+  const handleCustomSensitivityChange = (event, newValue) => {
+    setCustomSensitivity(newValue);
+    if (setCustomStepSensitivity) {
+      const result = setCustomStepSensitivity(newValue);
+      setStepDebugInfo(result);
+      console.log(`🎛️ حساسیت دستی: ${newValue}`);
+    }
+  };
+
   // کامپوننت نمایش مقدار با رنگ
   const ValueDisplay = ({ label, value, unit = "", color = "primary", size = "small" }) => (
     <Box sx={{ textAlign: 'center', mb: 1 }}>
@@ -121,6 +176,37 @@ export default function DebugPanel({
           fontSize: '0.75rem'
         }}
       />
+    </Box>
+  );
+
+  // 🔥 نمایش اطلاعات تشخیصی گام‌شمار
+  const StepCounterInfo = () => (
+    <Box sx={{ bgcolor: 'info.light', p: 2, borderRadius: 2, mb: 2 }}>
+      <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold', color: 'info.contrastText' }}>
+        🔍 اطلاعات تشخیصی گام‌شمار:
+      </Typography>
+      <Grid container spacing={1}>
+        <Grid item xs={6}>
+          <Typography variant="body2" sx={{ fontSize: '0.8rem', color: 'info.contrastText' }}>
+            آستانه: {stepDebugInfo.threshold?.toFixed(2) || 'N/A'}
+          </Typography>
+        </Grid>
+        <Grid item xs={6}>
+          <Typography variant="body2" sx={{ fontSize: '0.8rem', color: 'info.contrastText' }}>
+            فاصله: {stepDebugInfo.minInterval || 'N/A'}ms
+          </Typography>
+        </Grid>
+        <Grid item xs={6}>
+          <Typography variant="body2" sx={{ fontSize: '0.8rem', color: 'info.contrastText' }}>
+            تاریخچه: {stepDebugInfo.historySize || 0}
+          </Typography>
+        </Grid>
+        <Grid item xs={6}>
+          <Typography variant="body2" sx={{ fontSize: '0.8rem', color: 'info.contrastText' }}>
+            مقادیر آخر: {stepDebugInfo.lastValues?.join(', ') || 'N/A'}
+          </Typography>
+        </Grid>
+      </Grid>
     </Box>
   );
 
@@ -212,10 +298,18 @@ export default function DebugPanel({
                 sx={{ fontSize: '0.7rem', minWidth: '50px' }}
               />
               
+              {/* تعداد گام‌ها */}
+              <Chip 
+                label={`${stepCount}👟`}
+                color="secondary"
+                size="small"
+                sx={{ fontSize: '0.7rem', minWidth: '40px' }}
+              />
+              
               {/* تعداد نقاط */}
               <Chip 
                 label={`${points.length}`}
-                color="secondary"
+                color="primary"
                 size="small"
                 sx={{ fontSize: '0.7rem', minWidth: '35px' }}
               />
@@ -246,6 +340,126 @@ export default function DebugPanel({
               '&::-webkit-scrollbar-thumb': { background: '#c1c1c1', borderRadius: '3px' }
             }}>
               
+              {/* 🔥 بخش تنظیم حساسیت گام‌شمار */}
+              <Box sx={{ mb: 3 }}>
+                <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
+                  <SpeedIcon sx={{ mr: 1 }} />
+                  تنظیم حساسیت گام‌شمار
+                </Typography>
+                
+                {/* انتخاب نوع تنظیم */}
+                <Grid container spacing={2} sx={{ mb: 2 }}>
+                  <Grid item xs={6}>
+                    <Button
+                      fullWidth
+                      variant={sensitivityMode === 'preset' ? 'contained' : 'outlined'}
+                      onClick={() => setSensitivityMode('preset')}
+                      size="small"
+                    >
+                      سطوح از پیش تعریف
+                    </Button>
+                  </Grid>
+                  <Grid item xs={6}>
+                    <Button
+                      fullWidth
+                      variant={sensitivityMode === 'custom' ? 'contained' : 'outlined'}
+                      onClick={() => setSensitivityMode('custom')}
+                      size="small"
+                    >
+                      تنظیم دستی
+                    </Button>
+                  </Grid>
+                </Grid>
+
+                {/* تنظیم با سطوح از پیش تعریف شده */}
+                {sensitivityMode === 'preset' && (
+                  <Box sx={{ mb: 2 }}>
+                    <FormControl fullWidth size="small">
+                      <InputLabel>سطح حساسیت</InputLabel>
+                      <Select
+                        value={sensitivityLevel}
+                        label="سطح حساسیت"
+                        onChange={handleSensitivityLevelChange}
+                      >
+                        <MenuItem value="low">🐌 کم - برای حرکت‌های آرام</MenuItem>
+                        <MenuItem value="medium">🚶 متوسط - پیاده‌روی عادی</MenuItem>
+                        <MenuItem value="high">🏃 زیاد - حرکت سریع</MenuItem>
+                        <MenuItem value="very_high">⚡ خیلی زیاد - حداکثر حساسیت</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Box>
+                )}
+
+                {/* تنظیم دستی */}
+                {sensitivityMode === 'custom' && (
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="body2" sx={{ mb: 1 }}>
+                      حساسیت دستی: {customSensitivity.toFixed(1)}
+                    </Typography>
+                    <Slider
+                      value={customSensitivity}
+                      onChange={handleCustomSensitivityChange}
+                      min={0.5}
+                      max={2.0}
+                      step={0.1}
+                      marks={[
+                        { value: 0.5, label: 'کم' },
+                        { value: 1.0, label: 'متوسط' },
+                        { value: 1.5, label: 'زیاد' },
+                        { value: 2.0, label: 'حداکثر' }
+                      ]}
+                      valueLabelDisplay="auto"
+                    />
+                  </Box>
+                )}
+
+                {/* نمایش وضعیت فعلی گام‌شمار */}
+                <Grid container spacing={2} sx={{ mb: 2 }}>
+                  <Grid item xs={3}>
+                    <ValueDisplay 
+                      label="گام‌های کل"
+                      value={stepDebugInfo.steps || 0}
+                      color="success"
+                    />
+                  </Grid>
+                  <Grid item xs={3}>
+                    <ValueDisplay 
+                      label="آستانه فعلی"
+                      value={(stepDebugInfo.threshold || 0).toFixed(2)}
+                      color="info"
+                    />
+                  </Grid>
+                  <Grid item xs={3}>
+                    <ValueDisplay 
+                      label="فاصله گام"
+                      value={stepDebugInfo.minInterval || 0}
+                      unit="ms"
+                      color="warning"
+                    />
+                  </Grid>
+                  <Grid item xs={3}>
+                    <ValueDisplay 
+                      label="داده‌های نگهداری"
+                      value={stepDebugInfo.historySize || 0}
+                      color="secondary"
+                    />
+                  </Grid>
+                </Grid>
+
+                {/* نمایش اطلاعات تشخیصی */}
+                {stepDebugInfo.lastValues && stepDebugInfo.lastValues.length > 0 && (
+                  <StepCounterInfo />
+                )}
+
+                {/* راهنمایی */}
+                <Alert severity="info" sx={{ fontSize: '0.8rem' }}>
+                  💡 <strong>راهنما:</strong> اگر گام‌ها کم شمارش می‌شوند، حساسیت را بالا ببرید. 
+                  اگر خیلی زیاد شمارش می‌شوند، حساسیت را کم کنید.
+                </Alert>
+              </Box>
+
+              <Divider sx={{ my: 2 }} />
+
               {/* بخش کالیبراسیون */}
               <Box sx={{ mb: 2 }}>
                 <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 1.5, display: 'flex', alignItems: 'center' }}>
@@ -427,7 +641,7 @@ export default function DebugPanel({
               <Divider sx={{ my: 2 }} />
 
               {/* GPS برای مقایسه */}
-              <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 1.5 }}>
+              <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 1.5, display: 'flex', alignItems: 'center'  }}>
                 📡 GPS (فقط برای مقایسه)
               </Typography>
               <Grid container spacing={2} sx={{ mb: 2 }}>
@@ -478,8 +692,11 @@ export default function DebugPanel({
                 <Typography variant="body2" sx={{ fontFamily: 'monospace', mb: 0.5, fontSize: '0.8rem' }}>
                   <strong>🧭 جهت:</strong> قطب‌نمای کالیبره‌شده
                 </Typography>
-                <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>
+                <Typography variant="body2" sx={{ fontFamily: 'monospace', mb: 0.5, fontSize: '0.8rem' }}>
                   <strong>🚀 GPS:</strong> فقط نقطه شروع + مقایسه
+                </Typography>
+                <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>
+                  <strong>🎛️ حساسیت:</strong> {sensitivityMode === 'preset' ? sensitivityLevel : `دستی ${customSensitivity}`}
                 </Typography>
               </Box>
 

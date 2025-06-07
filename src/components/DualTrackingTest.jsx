@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from "react";
 import { useDualTracking } from "../hooks/useDualTracking";
 import { MapContainer, TileLayer, Polyline, Circle, Marker, useMap } from "react-leaflet";
@@ -9,8 +10,6 @@ import TextSnippetIcon from '@mui/icons-material/TextSnippet';
 import ListAltIcon from '@mui/icons-material/ListAlt';
 import DebugPanel from "./DebugPanel";
 import L from "leaflet";
-
-// بقیه توابع helper همان‌طور که قبلاً بود...
 
 // ✅ فرمول تصحیح شده برای محاسبه جهت
 function calcDrHeading(path) {
@@ -56,7 +55,6 @@ function calcGpsMovementDirection(points) {
 
     return bearing;
 }
-
 
 // ✅ کامپوننت فلش DR تصحیح شده
 function DrArrowMarker({ position, heading }) {
@@ -157,7 +155,18 @@ function calculateDistance(lat1, lng1, lat2, lng2) {
 }
 
 export default function DualTrackingTest({ mode, actions, mapHeight }) {
-    const { tracking, points, start: hookStart, stop, calibrateHeadingOffset, offset } = useDualTracking();
+    // 🔥 دریافت توابع جدید برای کنترل حساسیت گام‌شمار
+    const { 
+        tracking, 
+        points, 
+        start: hookStart, 
+        stop, 
+        calibrateHeadingOffset, 
+        offset,
+        adjustStepSensitivity,
+        setCustomStepSensitivity,
+        getStepDebugInfo
+    } = useDualTracking();
 
     const handleStartStop = () => {
         if (tracking) {
@@ -189,8 +198,6 @@ export default function DualTrackingTest({ mode, actions, mapHeight }) {
         }
         return currentHeading;
     };
-
-    
     
     // دریافت جهت فعلی سنسور
     useEffect(() => {
@@ -269,7 +276,6 @@ export default function DualTrackingTest({ mode, actions, mapHeight }) {
                         <DrArrowMarker
                             position={drPath[drPath.length - 1]}
                             heading={getCalibratedHeading()} // ✅ استفاده از جهت کالیبره‌شده
-                        // heading={calcDrHeading(drPath)} // استفاده از جهت محاسبه شده مسیر DR
                         />
                     )}
                     <AutoRecenter gps={lastGps} dr={lastDr} mode={followMode} />
@@ -315,7 +321,7 @@ export default function DualTrackingTest({ mode, actions, mapHeight }) {
                 </Box>
             </Box>
 
-            {/* پنل دیباگ */}
+            {/* 🔥 پنل دیباگ با props های جدید */}
             <DebugPanel
                 points={points}
                 tracking={tracking}
@@ -325,6 +331,10 @@ export default function DualTrackingTest({ mode, actions, mapHeight }) {
                 calibrateHeadingOffset={calibrateHeadingOffset}
                 offset={offset}
                 onStartStop={handleStartStop}
+                // 🔥 props های جدید برای کنترل حساسیت گام‌شمار
+                adjustStepSensitivity={adjustStepSensitivity}
+                setCustomStepSensitivity={setCustomStepSensitivity}
+                getStepDebugInfo={getStepDebugInfo}
             />
         </Box>
     );
