@@ -105,12 +105,13 @@ export function useDualTracking() {
           
           if (northAngle !== null) {
             // ✅ فرمول صحیح برای تصحیح جهت
-            correctedHeading = (headingRef.current - northAngle + 360) % 360;
+            // correctedHeading = (headingRef.current - northAngle + 360) % 360;
+            correctedHeading = (northAngle - headingRef.current + 360) % 360;
           }
           
           // ✅ حرکت حتی برای مسافت‌های کوچک‌تر
           if (moved > 0.05) { // حداقل 5 سانتی‌متر
-            dr = moveLatLng(dr, -correctedHeading, moved);
+            dr = moveLatLng(dr, correctedHeading, moved);
           }
         }
         

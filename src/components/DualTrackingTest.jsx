@@ -185,9 +185,9 @@ export default function DualTrackingTest({ mode, actions, mapHeight }) {
     const getCalibratedHeading = () => {
         const northAngle = Number(localStorage.getItem('northAngle')) || 0;
         if (northAngle !== 0) {
-            return (currentHeading - northAngle + 360) % 360;
+            return (northAngle - currentHeading + 360) % 360;
         }
-        return -currentHeading;
+        return currentHeading;
     };
 
     // دریافت جهت فعلی سنسور
