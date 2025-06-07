@@ -267,8 +267,8 @@ export default function DualTrackingTest({ mode, actions, mapHeight }) {
                     {drPath.length > 0 && (
                         <DrArrowMarker
                             position={drPath[drPath.length - 1]}
-                            // heading={getCalibratedHeading()} // ✅ استفاده از جهت کالیبره‌شده
-                            heading={calcDrHeading(drPath)} // ✅ استفاده از جهت محاسبه شده مسیر DR
+                            heading={getCalibratedHeading()} // ✅ استفاده از جهت کالیبره‌شده
+                            // heading={calcDrHeading(drPath)} // استفاده از جهت محاسبه شده مسیر DR
                         />
                     )}
                     <AutoRecenter gps={lastGps} dr={lastDr} mode={followMode} />
