@@ -375,7 +375,8 @@ const exportMapData = (format = 'geojson') => {
         version: '1.0',
         exportDate: new Date().toISOString(),
         markers,
-        paths
+        paths,
+        polygons
       };
       dataStr = JSON.stringify(exportData, null, 2);
       mimeType = 'application/json';
