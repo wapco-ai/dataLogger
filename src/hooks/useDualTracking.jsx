@@ -17,105 +17,131 @@ function moveLatLng({ latitude, longitude }, headingDeg, distanceMeters) {
   };
 }
 
-// 🔥 تشخیص حرکت واقعی از GPS - اولویت اول  
-function detectGPSMovement(currentPos, lastPos, timeInterval) {
-  if (!lastPos || !currentPos || timeInterval <= 0) {
-    return { 
-      isMoving: false, 
-      speed: 0, 
-      distance: 0, 
-      accuracy: 999, 
-      hasGoodAccuracy: false 
-    };
+// 🔥 تشخیص حرکت کاملاً مستقل از GPS - فقط از سنسورهای داخلی
+function detectMovementFromSensors(acceleration, rotationRate, stepCount, previousStepCount, timeInterval) {
+  // ترکیب چند روش برای تشخیص دقیق‌تر حرکت
+  
+  // 1. تشخیص از شتاب‌سنج
+  let accelerationMovement = { isMoving: false, confidence: 0, value: 0 };
+  if (acceleration) {
+    const totalAccel = Math.sqrt(
+      (acceleration.x || 0) ** 2 +
+      (acceleration.y || 0) ** 2 +
+      (acceleration.z || 0) ** 2
+    );
+    
+    const gravity = 9.81;
+    const netAccel = Math.abs(totalAccel - gravity);
+    
+    // آستانه‌های واقع‌بینانه برای حرکت انسان
+    const ACCEL_WALK_THRESHOLD = 0.8;   // پیاده‌روی آهسته
+    const ACCEL_FAST_THRESHOLD = 2.5;   // دویدن
+    
+    if (netAccel > ACCEL_WALK_THRESHOLD) {
+      accelerationMovement = {
+        isMoving: true,
+        confidence: Math.min(netAccel / ACCEL_FAST_THRESHOLD, 1),
+        value: netAccel
+      };
+    }
   }
   
-  // محاسبه فاصله Haversine
-  const R = 6371000; // شعاع زمین به متر
-  const dLat = (currentPos.latitude - lastPos.latitude) * Math.PI / 180;
-  const dLng = (currentPos.longitude - lastPos.longitude) * Math.PI / 180;
+  // 2. تشخیص از ژیروسکوپ (چرخش)
+  let rotationMovement = { isMoving: false, confidence: 0, value: 0 };
+  if (rotationRate) {
+    const totalRotation = Math.sqrt(
+      (rotationRate.alpha || 0) ** 2 +
+      (rotationRate.beta || 0) ** 2 +
+      (rotationRate.gamma || 0) ** 2
+    );
+    
+    const ROTATION_THRESHOLD = 5; // درجه بر ثانیه
+    
+    if (totalRotation > ROTATION_THRESHOLD) {
+      rotationMovement = {
+        isMoving: true,
+        confidence: Math.min(totalRotation / (ROTATION_THRESHOLD * 4), 1),
+        value: totalRotation
+      };
+    }
+  }
   
-  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-            Math.cos(lastPos.latitude * Math.PI / 180) * 
-            Math.cos(currentPos.latitude * Math.PI / 180) *
-            Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  // 3. تشخیص از گام‌شمار
+  let stepMovement = { isMoving: false, confidence: 0, steps: 0 };
+  if (stepCount !== null && previousStepCount !== null && timeInterval > 0) {
+    const newSteps = stepCount - previousStepCount;
+    const stepsPerSecond = newSteps / timeInterval;
+    
+    if (newSteps > 0 && stepsPerSecond > 0.3) { // حداقل یک گام در 3 ثانیه
+      stepMovement = {
+        isMoving: true,
+        confidence: Math.min(stepsPerSecond / 2, 1), // 2 گام در ثانیه = اعتماد کامل
+        steps: newSteps
+      };
+    }
+  }
   
-  const distance = 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  const speed = distance / timeInterval; // m/s
+  // ترکیب نتایج با وزن‌دهی
+  const combinedConfidence = (
+    accelerationMovement.confidence * 0.4 +
+    rotationMovement.confidence * 0.3 +
+    stepMovement.confidence * 0.3
+  );
   
-  // آستانه‌های واقع‌بینانه
-  const SPEED_THRESHOLD = 0.5; // m/s = 1.8 km/h
-  const DISTANCE_THRESHOLD = 2; // متر - برای فیلتر نویز GPS
-  const ACCURACY_THRESHOLD = 15; // متر - فقط GPS با دقت خوب
+  const isMoving = combinedConfidence > 0.3; // آستانه نهایی
   
-  // بررسی دقت GPS
-  const hasGoodAccuracy = (!currentPos.accuracy || currentPos.accuracy <= ACCURACY_THRESHOLD);
+  // محاسبه سرعت تخمینی بر اساس سنسورها
+  let estimatedSpeed = 0;
+  if (isMoving) {
+    if (stepMovement.isMoving) {
+      // سرعت بر اساس گام: حدوداً 0.7 متر بر گام، متوسط انسان
+      const avgStepLength = 0.7; // متر
+      estimatedSpeed = stepMovement.steps * avgStepLength / timeInterval;
+    } else if (accelerationMovement.isMoving) {
+      // سرعت بر اساس شتاب (تخمینی)
+      estimatedSpeed = Math.min(accelerationMovement.value * 0.5, 3.0);
+    } else {
+      // سرعت پیش‌فرض برای حرکت‌های کند
+      estimatedSpeed = 1.0;
+    }
+    
+    // محدود کردن سرعت به محدوده منطقی انسان (0.5 تا 6 متر بر ثانیه)
+    estimatedSpeed = Math.max(0.5, Math.min(estimatedSpeed, 6.0));
+  }
   
-  const isMoving = hasGoodAccuracy && 
-                   speed > SPEED_THRESHOLD && 
-                   distance > DISTANCE_THRESHOLD;
-  
-  return { 
-    isMoving, 
-    speed: isMoving ? speed : 0,
-    distance,
-    accuracy: currentPos.accuracy || 999,
-    hasGoodAccuracy
+  return {
+    isMoving,
+    confidence: combinedConfidence,
+    estimatedSpeed,
+    details: {
+      acceleration: accelerationMovement,
+      rotation: rotationMovement,
+      steps: stepMovement
+    }
   };
 }
 
-// 🔥 تشخیص حرکت از motion sensors - فقط پشتیبان
-function detectSensorMovement(acceleration, rotationRate) {
-  // مقادیر پیش‌فرض
-  const defaultResult = { 
-    isMoving: false, 
-    confidence: 0, 
-    acceleration: 0, 
-    rotation: 0 
-  };
-  
-  if (!acceleration) {
-    return defaultResult;
+// تابع دریافت تعداد گام (اگر در دسترس باشد)
+async function getStepCount() {
+  try {
+    if ('Pedometer' in window) {
+      const pedometer = new window.Pedometer();
+      return await pedometer.getStepCount();
+    }
+    
+    // برای Android - Web API
+    if (navigator.permissions) {
+      const permission = await navigator.permissions.query({ name: 'accelerometer' });
+      if (permission.state === 'granted' && 'StepCounter' in window) {
+        return await window.StepCounter.getStepCount();
+      }
+    }
+    
+    return null;
+  } catch (error) {
+    console.warn('Step counter not available:', error);
+    return null;
   }
-  
-  // محاسبه شتاب کل
-  const totalAccel = Math.sqrt(
-    (acceleration.x || 0) * (acceleration.x || 0) +
-    (acceleration.y || 0) * (acceleration.y || 0) +
-    (acceleration.z || 0) * (acceleration.z || 0)
-  );
-  
-  // حذف گرانش زمین
-  const gravity = 9.81;
-  const netAccel = Math.abs(totalAccel - gravity);
-  
-  // محاسبه چرخش کل
-  let totalRotation = 0;
-  if (rotationRate) {
-    totalRotation = Math.sqrt(
-      (rotationRate.alpha || 0) * (rotationRate.alpha || 0) +
-      (rotationRate.beta || 0) * (rotationRate.beta || 0) +
-      (rotationRate.gamma || 0) * (rotationRate.gamma || 0)
-    );
-  }
-  
-  // آستانه‌های سخت‌گیرانه برای sensors
-  const ACCEL_THRESHOLD = 1.5; // m/s² - افزایش آستانه
-  const ROTATION_THRESHOLD = 10; // deg/s - افزایش آستانه
-  
-  const isMovingByAccel = netAccel > ACCEL_THRESHOLD;
-  const isMovingByRotation = totalRotation > ROTATION_THRESHOLD;
-  
-  const confidence = Math.min(
-    (netAccel / ACCEL_THRESHOLD + totalRotation / ROTATION_THRESHOLD) / 2, 
-    1
-  );
-  
-  return {
-    isMoving: isMovingByAccel || isMovingByRotation,
-    confidence,
-    acceleration: netAccel, // ✅ همیشه مقدار دارد
-    rotation: totalRotation
-  };
 }
 
 export function useDualTracking() {
@@ -124,23 +150,23 @@ export function useDualTracking() {
   const [waitingForAccuracy, setWaitingForAccuracy] = useState(false);
   const [currentAccuracy, setCurrentAccuracy] = useState(999);
 
+  // 🔥 مراجع مستقل از GPS برای Dead Reckoning
   const lastDrRef = useRef(null);
-  const lastGpsRef = useRef(null);
+  const lastGpsRef = useRef(null); // فقط برای مقایسه، نه برای DR
   const lastTimestampRef = useRef(null);
   const headingRef = useRef(0);
-  const isInitializedRef = useRef(false); // 🔥 پرچم اولیه‌سازی
-  // 🔥 وضعیت دسترسی به حسگرها
-  const orientationPermissionRef = useRef(false);
-  const motionPermissionRef = useRef(false);
+  const isInitializedRef = useRef(false);
   
-  // 🔥 متغیرهای تشخیص حرکت
+  // 🔥 متغیرهای سنسوری مستقل
   const accelerationRef = useRef(null);
   const rotationRateRef = useRef(null);
+  const stepCountRef = useRef(null);
+  const previousStepCountRef = useRef(null);
   const movementHistoryRef = useRef([]);
   const currentSpeedRef = useRef(0);
   const isMovingRef = useRef(false);
 
-  // آستانه دقت GPS برای شروع ردیابی
+  // آستانه دقت GPS فقط برای نقطه شروع
   const REQUIRED_ACCURACY = 800; // متر
 
   // Listen to device orientation (برای جهت)
@@ -152,7 +178,6 @@ export function useDualTracking() {
     };
 
     window.addEventListener("deviceorientation", handleOrientation, true);
-
     return () => window.removeEventListener("deviceorientation", handleOrientation, true);
   }, []);
 
@@ -164,15 +189,15 @@ export function useDualTracking() {
     };
 
     window.addEventListener("devicemotion", handleMotion, true);
-
     return () => window.removeEventListener("devicemotion", handleMotion, true);
   }, []);
 
+  // 🔥 GPS فقط برای نقطه شروع و مقایسه - بدون تأثیر بر DR
   useEffect(() => {
     if (!tracking) return;
     
     const watchId = navigator.geolocation.watchPosition(
-      (position) => {
+      async (position) => {
         const { latitude, longitude, accuracy, speed, heading } = position.coords;
         const timestamp = position.timestamp;
         
@@ -181,22 +206,26 @@ export function useDualTracking() {
         // 🔥 آپدیت دقت فعلی
         setCurrentAccuracy(accuracy || 999);
         
-        // 🔥 بررسی اینکه آیا دقت کافی داریم یا نه
+        // 🔥 GPS فقط برای تعیین نقطه شروع استفاده می‌شود
         if (!isInitializedRef.current) {
           if (!accuracy || accuracy > REQUIRED_ACCURACY) {
-            console.log(`⏳ انتظار دقت GPS... فعلی: ${accuracy?.toFixed(1) || 'نامشخص'}m (نیاز: ${REQUIRED_ACCURACY}m)`);
+            console.log(`⏳ انتظار دقت GPS برای نقطه شروع... فعلی: ${accuracy?.toFixed(1) || 'نامشخص'}m`);
             setWaitingForAccuracy(true);
-            return; // خروج و انتظار دقت بهتر
+            return;
           } else {
-            // دقت کافی رسید - اولیه‌سازی
-            console.log(`✅ دقت GPS کافی رسید: ${accuracy.toFixed(1)}m`);
-            console.log(`🎯 تنظیم نقطه مرجع: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
+            // تنها استفاده از GPS: تعیین نقطه شروع
+            console.log(`✅ نقطه شروع از GPS: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
             
             lastDrRef.current = { latitude, longitude, timestamp };
             lastGpsRef.current = { latitude, longitude, timestamp, accuracy, speed };
             lastTimestampRef.current = timestamp;
             isInitializedRef.current = true;
             setWaitingForAccuracy(false);
+            
+            // دریافت تعداد گام اولیه
+            const initialStepCount = await getStepCount();
+            stepCountRef.current = initialStepCount;
+            previousStepCountRef.current = initialStepCount;
             
             // اضافه کردن نقطه اولیه
             setPoints([{
@@ -208,85 +237,89 @@ export function useDualTracking() {
                 calculatedSpeed: 0,
                 finalSpeed: 0,
                 isMoving: false,
-                movementMethod: "Initial Reference Point",
+                movementMethod: "🎯 Initial Reference Point (GPS)",
                 moved: 0,
                 heading: headingRef.current,
-                gpsMovement: { isMoving: false, speed: 0, distance: 0, accuracy, hasGoodAccuracy: true },
-                sensorMovement: { isMoving: false, confidence: 0, acceleration: 0, rotation: 0 },
+                sensorMovement: { 
+                  isMoving: false, 
+                  confidence: 0, 
+                  estimatedSpeed: 0,
+                  details: {
+                    acceleration: { isMoving: false, confidence: 0, value: 0 },
+                    rotation: { isMoving: false, confidence: 0, value: 0 },
+                    steps: { isMoving: false, confidence: 0, steps: 0 }
+                  }
+                },
+                stepCount: initialStepCount,
                 movementHistory: []
               }
             }]);
             
-            console.log(`🚀 ردیابی شروع شد با نقطه مرجع دقیق`);
+            console.log(`🚀 Dead Reckoning شروع شد - مستقل از GPS`);
             return;
           }
         }
         
-        // 🔥 ادامه ردیابی عادی (فقط اگر اولیه‌سازی شده باشد)
-        let dr = lastDrRef.current;
-        let calculatedSpeed = 0;
+        // 🔥 ادامه ردیابی: GPS فقط برای مقایسه
+        let dr = { ...lastDrRef.current };
         let moved = 0;
         let isMoving = false;
-        let movementMethod = "none";
-        let gpsMovement = { isMoving: false, speed: 0, distance: 0 };
-        let sensorMovement = { isMoving: false, confidence: 0 };
+        let movementMethod = "🛑 Stationary";
+        let sensorMovement = { isMoving: false, confidence: 0, estimatedSpeed: 0 };
         
-        if (lastTimestampRef.current && lastGpsRef.current) {
+        if (lastTimestampRef.current) {
           const dt = (timestamp - lastTimestampRef.current) / 1000; // ثانیه
           
-          // 🔥 اولویت 1: تشخیص حرکت از GPS
-          gpsMovement = detectGPSMovement(currentGps, lastGpsRef.current, dt);
-          
-          // 🔥 اولویت 2: تشخیص حرکت از sensors (فقط اگر GPS مشکل دارد)
-          sensorMovement = detectSensorMovement(
-            accelerationRef.current, 
-            rotationRateRef.current
-          );
-          
-          // 🔥 تصمیم‌گیری نهایی
-          if (gpsMovement.hasGoodAccuracy) {
-            // GPS دقت خوب دارد - فقط از GPS استفاده کن
-            isMoving = gpsMovement.isMoving;
-            calculatedSpeed = gpsMovement.speed;
-            movementMethod = `GPS (${gpsMovement.accuracy}m)`;
-          } else if (sensorMovement.isMoving && sensorMovement.confidence > 0.8) {
-            // GPS دقت ضعیف دارد - از sensors استفاده کن
-            isMoving = true;
-            calculatedSpeed = Math.min(sensorMovement.acceleration * 0.3, 1.5); // محافظه‌کارانه
-            movementMethod = `Sensors (${sensorMovement.confidence.toFixed(2)})`;
-          } else {
-            // هیچ‌کدام قانع‌کننده نیستند
-            isMoving = false;
-            calculatedSpeed = 0;
-            movementMethod = "Stationary";
+          // دریافت تعداد گام جدید
+          const currentStepCount = await getStepCount();
+          if (currentStepCount !== null) {
+            previousStepCountRef.current = stepCountRef.current;
+            stepCountRef.current = currentStepCount;
           }
           
-          // 🔥 فیلتر تاریخچه - باید 3 از 5 نمونه آخر موافق باشند
+          // 🔥 تشخیص حرکت کاملاً مستقل از GPS
+          sensorMovement = detectMovementFromSensors(
+            accelerationRef.current, 
+            rotationRateRef.current,
+            stepCountRef.current,
+            previousStepCountRef.current,
+            dt
+          );
+          
+          isMoving = sensorMovement.isMoving;
+          const calculatedSpeed = sensorMovement.estimatedSpeed;
+          
+          // تعیین روش تشخیص حرکت
+          if (isMoving) {
+            const { acceleration, rotation, steps } = sensorMovement.details;
+            if (steps.isMoving) {
+              movementMethod = `🚶 Step Counter (${steps.steps} steps)`;
+            } else if (acceleration.isMoving && rotation.isMoving) {
+              movementMethod = `📱 Accel+Gyro (${sensorMovement.confidence.toFixed(2)})`;
+            } else if (acceleration.isMoving) {
+              movementMethod = `📈 Accelerometer (${acceleration.value.toFixed(2)} m/s²)`;
+            } else if (rotation.isMoving) {
+              movementMethod = `🔄 Gyroscope (${rotation.value.toFixed(1)} °/s)`;
+            }
+          }
+          
+          // 🔥 فیلتر تاریخچه حرکت برای کاهش نویز
           movementHistoryRef.current.push(isMoving);
           if (movementHistoryRef.current.length > 5) {
             movementHistoryRef.current.shift();
           }
           
           const movingCount = movementHistoryRef.current.filter(Boolean).length;
-          const finalIsMoving = movingCount >= 3; // 3 از 5 نمونه
+          const finalIsMoving = movingCount >= 3; // 3 از 5 نمونه آخر
           
           currentSpeedRef.current = finalIsMoving ? calculatedSpeed : 0;
           isMovingRef.current = finalIsMoving;
           
-          // 🔥 لاگ دیباگ
-          console.log(`🔍 تشخیص حرکت:`);
-          console.log(`  GPS: ${gpsMovement.isMoving ? '✅' : '❌'} (${gpsMovement.speed.toFixed(2)} m/s, ${gpsMovement.distance.toFixed(1)}m, دقت: ${gpsMovement.accuracy}m)`);
-          console.log(`  Sensors: ${sensorMovement.isMoving ? '✅' : '❌'} (اعتماد: ${sensorMovement.confidence.toFixed(2)}, شتاب: ${sensorMovement.acceleration.toFixed(2)})`);
-          console.log(`  تاریخچه: [${movementHistoryRef.current.map(m => m ? '1' : '0').join(',')}] (${movingCount}/5)`);
-          console.log(`  نهایی: ${finalIsMoving ? '🏃 در حرکت' : '⏸️ ثابت'} - ${movementMethod}`);
-          console.log(`  سرعت نهایی: ${currentSpeedRef.current.toFixed(3)} m/s`);
-          console.log(`---`);
-          
           moved = currentSpeedRef.current * dt;
           
-          // 🔥 حرکت فقط اگر واقعاً در حال حرکت باشد
+          // 🔥 حرکت DR بر اساس سنسورهای داخلی
           if (finalIsMoving && moved > 0.01) { // حداقل 1 سانتی‌متر
-            // محاسبه جهت بدون تصحیح GPS
+            // محاسبه جهت تصحیح‌شده
             let pureHeading = headingRef.current;
             const northAngle = localStorage.getItem('northAngle');
             if (northAngle && Number(northAngle) !== 0) {
@@ -294,14 +327,14 @@ export function useDualTracking() {
             }
             
             dr = moveLatLng(dr, pureHeading, moved);
-            console.log(`📍 حرکت DR: ${moved.toFixed(4)}m در جهت ${pureHeading.toFixed(1)}°`);
+            console.log(`🧭 DR Movement: ${moved.toFixed(4)}m @ ${pureHeading.toFixed(1)}° (${movementMethod})`);
           } else {
-            console.log(`⏸️ DR ثابت - حرکت: ${moved.toFixed(4)}m`);
+            console.log(`⏸️ DR Stationary - Movement: ${moved.toFixed(4)}m (${movementHistoryRef.current.map(m => m ? '1' : '0').join(',')})`);
           }
         }
         
         lastDrRef.current = dr;
-        lastGpsRef.current = currentGps;
+        lastGpsRef.current = currentGps; // فقط برای مقایسه
         lastTimestampRef.current = timestamp;
         
         // اضافه کردن نقطه جدید
@@ -320,18 +353,17 @@ export function useDualTracking() {
               latitude: dr.latitude, 
               longitude: dr.longitude, 
               timestamp,
-              // metadata کامل
-              calculatedSpeed: calculatedSpeed,
+              calculatedSpeed: sensorMovement.estimatedSpeed,
               finalSpeed: currentSpeedRef.current,
               isMoving: isMovingRef.current,
               movementMethod: movementMethod,
               moved: moved,
               heading: headingRef.current,
-              gpsMovement: gpsMovement,
               sensorMovement: sensorMovement,
+              stepCount: stepCountRef.current,
               movementHistory: [...movementHistoryRef.current]
-            },
-          },
+            }
+          }
         ]);
       },
       (error) => {
@@ -340,7 +372,7 @@ export function useDualTracking() {
       },
       { 
         enableHighAccuracy: true, 
-        maximumAge: 1000, // کاهش maximumAge برای داده‌های تازه‌تر
+        maximumAge: 1000,
         timeout: 10000 
       }
     );
@@ -355,30 +387,34 @@ export function useDualTracking() {
       currentSpeedRef.current = 0;
       isMovingRef.current = false;
       isInitializedRef.current = false;
+      stepCountRef.current = null;
+      previousStepCountRef.current = null;
     };
   }, [tracking]);
 
   const start = async () => {
-    // درخواست مجوز حسگرها در صورت نیاز
+    // درخواست مجوز حسگرها
     if (typeof DeviceOrientationEvent !== 'undefined' &&
-        typeof DeviceOrientationEvent.requestPermission === 'function' &&
-        !orientationPermissionRef.current) {
+        typeof DeviceOrientationEvent.requestPermission === 'function') {
       try {
         const state = await DeviceOrientationEvent.requestPermission();
-        orientationPermissionRef.current = state === 'granted';
+        if (state !== 'granted') {
+          console.warn('Device orientation permission denied');
+        }
       } catch (err) {
-        console.warn(err);
+        console.warn('Device orientation permission error:', err);
       }
     }
 
     if (typeof DeviceMotionEvent !== 'undefined' &&
-        typeof DeviceMotionEvent.requestPermission === 'function' &&
-        !motionPermissionRef.current) {
+        typeof DeviceMotionEvent.requestPermission === 'function') {
       try {
         const state = await DeviceMotionEvent.requestPermission();
-        motionPermissionRef.current = state === 'granted';
+        if (state !== 'granted') {
+          console.warn('Device motion permission denied');
+        }
       } catch (err) {
-        console.warn(err);
+        console.warn('Device motion permission error:', err);
       }
     }
 
@@ -394,21 +430,20 @@ export function useDualTracking() {
     movementHistoryRef.current = [];
     currentSpeedRef.current = 0;
     isMovingRef.current = false;
-    isInitializedRef.current = false; // 🔥 ریست پرچم اولیه‌سازی
+    isInitializedRef.current = false;
+    stepCountRef.current = null;
+    previousStepCountRef.current = null;
     
-    console.log("🚀 شروع ردیابی - انتظار دقت GPS...");
-    console.log(`📋 آستانه‌ها:`);
-    console.log(`  GPS ضروری: دقت < ${REQUIRED_ACCURACY}m`);
-    console.log(`  GPS حرکت: سرعت > 0.5 m/s, فاصله > 2m, دقت < 15m`);
-    console.log(`  Sensors: شتاب > 1.5 m/s², چرخش > 10 deg/s`);
-    console.log(`  فیلتر: 3 از 5 نمونه آخر موافق`);
+    console.log("🚀 شروع Dead Reckoning مستقل از GPS");
+    console.log("📱 تشخیص حرکت از: شتاب‌سنج، ژیروسکوپ، گام‌شمار");
+    console.log("🎯 GPS فقط برای نقطه شروع و مقایسه");
   };
   
   const stop = () => {
     setTracking(false);
     setWaitingForAccuracy(false);
     isInitializedRef.current = false;
-    console.log("🛑 توقف ردیابی");
+    console.log("🛑 توقف Dead Reckoning");
   };
 
   // کالیبراسیون دستی
@@ -423,7 +458,7 @@ export function useDualTracking() {
     return 0;
   };
 
-  // API جدید
+  // API وضعیت
   const getCurrentStatus = () => {
     return {
       isMoving: isMovingRef.current,
@@ -433,7 +468,8 @@ export function useDualTracking() {
       movementHistory: [...movementHistoryRef.current],
       waitingForAccuracy,
       currentAccuracy,
-      isInitialized: isInitializedRef.current
+      isInitialized: isInitializedRef.current,
+      stepCount: stepCountRef.current
     };
   };
 
@@ -449,12 +485,10 @@ export function useDualTracking() {
     stop,
     calibrateHeadingOffset,
     offset: getOffset(),
-    // API جدید
     getCurrentStatus,
     currentSpeed: currentSpeedRef.current,
     currentHeading: headingRef.current,
     isMoving: isMovingRef.current,
-    // 🔥 state های جدید
     waitingForAccuracy,
     currentAccuracy,
     isInitialized: isInitializedRef.current,

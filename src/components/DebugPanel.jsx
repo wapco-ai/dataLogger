@@ -25,6 +25,8 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import StopIcon from '@mui/icons-material/Stop';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import SensorsIcon from '@mui/icons-material/Sensors';
+import DirectionsWalkIcon from '@mui/icons-material/DirectionsWalk';
 
 export default function DebugPanel({ 
   points = [], 
@@ -61,23 +63,28 @@ export default function DebugPanel({
   const northAngle = Number(localStorage.getItem('northAngle')) || 0;
   const rawCompassHeading = deviceOrientation.alpha;
   
-  // ✅ فرمول صحیح - همانند کد اصلاح‌شده
   const calibratedHeading = northAngle !== 0 ? 
     (northAngle - rawCompassHeading + 360) % 360 : rawCompassHeading;
-  
-  // ✅ محاسبه جهت NorthAngleArrow برای مقایسه
-  const northArrowRotation = northAngle !== 0 ?
-    (rawCompassHeading - northAngle + 360) % 360 : rawCompassHeading;
-    
-  // بهینه‌سازی چرخش (کوتاه‌ترین مسیر)
-  const optimizedRotation = northArrowRotation > 180 ? northArrowRotation - 360 : northArrowRotation;
   
   const lastGps = points.length ? points[points.length - 1]?.gps : null;
   const lastDr = points.length ? points[points.length - 1]?.dr : null;
   
+  // اطلاعات سنسوری از آخرین نقطه
+  const sensorData = lastDr?.sensorMovement || {
+    isMoving: false,
+    confidence: 0,
+    estimatedSpeed: 0,
+    details: {
+      acceleration: { isMoving: false, confidence: 0, value: 0 },
+      rotation: { isMoving: false, confidence: 0, value: 0 },
+      steps: { isMoving: false, confidence: 0, steps: 0 }
+    }
+  };
+  
   // محاسبه سرعت و فاصله
-  const currentSpeed = lastGps?.speed || 0;
+  const currentSpeed = lastDr?.finalSpeed || 0;
   const gpsAccuracy = lastGps?.accuracy || 0;
+  const stepCount = lastDr?.stepCount || 0;
   
   // محاسبه انحراف بین GPS و DR
   const calculateDeviation = () => {
@@ -97,12 +104,8 @@ export default function DebugPanel({
   const deviation = calculateDeviation();
   const isCalibrated = northAngle !== 0;
 
-  // محاسبه اختلاف جهت‌ها
-  const headingDifference = Math.abs(calibratedHeading - drHeading);
-  const normalizedDifference = headingDifference > 180 ? 360 - headingDifference : headingDifference;
-
   // کامپوننت نمایش مقدار با رنگ
-  const ValueDisplay = ({ label, value, unit = "", color = "primary", icon, size = "small" }) => (
+  const ValueDisplay = ({ label, value, unit = "", color = "primary", size = "small" }) => (
     <Box sx={{ textAlign: 'center', mb: 1 }}>
       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5, fontSize: '0.7rem' }}>
         {label}
@@ -120,7 +123,6 @@ export default function DebugPanel({
       />
     </Box>
   );
-  
 
   return (
     <>
@@ -148,7 +150,7 @@ export default function DebugPanel({
           }}
         >
           
-          {/* 🎯 هدر کامپکت - همیشه نمایان */}
+          {/* 🎯 هدر کامپکت */}
           <Box 
             sx={{ 
               display: 'flex', 
@@ -162,7 +164,6 @@ export default function DebugPanel({
             onClick={() => setExpanded(!expanded)}
           >
             
-            {/* آیکون و تیتر */}
             <BugReportIcon sx={{ mr: 1, fontSize: '1.2rem' }} />
             <Typography variant="h7" sx={{ flex: 1, fontWeight: 'bold', fontSize: '0.9rem' }}>
               Debug
@@ -175,7 +176,7 @@ export default function DebugPanel({
                   size="medium" 
                   color={tracking ? "error" : "success"} 
                   onClick={(e) => {
-                    e.stopPropagation(); // جلوگیری از باز/بسته شدن پنل
+                    e.stopPropagation();
                     onStartStop();
                   }}
                   sx={{ mr: 1 }}
@@ -187,27 +188,34 @@ export default function DebugPanel({
             
             {/* اطلاعات خلاصه در هدر */}
             <Box sx={{ display: 'flex', gap: 1, mr: 2 }}>
+              {/* وضعیت حرکت */}
               <Chip 
-                label={`${calibratedHeading.toFixed(0)}°`}
-                color={isCalibrated ? "success" : "warning"}
+                label={sensorData.isMoving ? "🏃" : "⏸️"}
+                color={sensorData.isMoving ? "success" : "default"}
                 size="small"
-                sx={{ fontSize: '0.7rem', minWidth: '45px' }}
+                sx={{ fontSize: '0.8rem', minWidth: '35px' }}
               />
+              
+              {/* سرعت */}
               <Chip 
-                label={`DR: ${drHeading.toFixed(0)}°`}
-                color={normalizedDifference < 10 ? "success" : normalizedDifference < 30 ? "warning" : "error"}
+                label={`${currentSpeed.toFixed(1)}m/s`}
+                color={currentSpeed > 0 ? "info" : "default"}
                 size="small"
                 sx={{ fontSize: '0.7rem', minWidth: '55px' }}
               />
+              
+              {/* انحراف */}
               <Chip 
                 label={`${deviation.toFixed(1)}m`}
                 color={deviation < 5 ? "success" : deviation < 15 ? "warning" : "error"}
                 size="small"
                 sx={{ fontSize: '0.7rem', minWidth: '50px' }}
               />
+              
+              {/* تعداد نقاط */}
               <Chip 
                 label={`${points.length}`}
-                color="info"
+                color="secondary"
                 size="small"
                 sx={{ fontSize: '0.7rem', minWidth: '35px' }}
               />
@@ -227,23 +235,15 @@ export default function DebugPanel({
             </IconButton>
           </Box>
 
-          {/* 🎯 محتوای کامل - فقط هنگام باز بودن */}
+          {/* 🎯 محتوای کامل */}
           <Collapse in={expanded} timeout={300}>
             <Box sx={{ 
               p: 2, 
               maxHeight: 'calc(80vh - 60px)', 
               overflowY: 'auto',
-              '&::-webkit-scrollbar': {
-                width: '6px',
-              },
-              '&::-webkit-scrollbar-track': {
-                background: '#f1f1f1',
-                borderRadius: '3px',
-              },
-              '&::-webkit-scrollbar-thumb': {
-                background: '#c1c1c1',
-                borderRadius: '3px',
-              },
+              '&::-webkit-scrollbar': { width: '6px' },
+              '&::-webkit-scrollbar-track': { background: '#f1f1f1', borderRadius: '3px' },
+              '&::-webkit-scrollbar-thumb': { background: '#c1c1c1', borderRadius: '3px' }
             }}>
               
               {/* بخش کالیبراسیون */}
@@ -280,10 +280,10 @@ export default function DebugPanel({
                   </Grid>
                   <Grid item xs={3}>
                     <ValueDisplay 
-                      label="چرخش فلش"
-                      value={optimizedRotation.toFixed(1)}
+                      label="DR Heading"
+                      value={drHeading.toFixed(1)}
                       unit="°"
-                      color="secondary"
+                      color="warning"
                     />
                   </Grid>
                 </Grid>
@@ -309,57 +309,132 @@ export default function DebugPanel({
 
               <Divider sx={{ my: 2 }} />
 
+              {/* بخش سنسورها */}
+              <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 1.5, display: 'flex', alignItems: 'center' }}>
+                <SensorsIcon sx={{ mr: 1 }} />
+                سنسورهای تشخیص حرکت (مستقل از GPS)
+              </Typography>
+              
+              <Grid container spacing={2} sx={{ mb: 2 }}>
+                <Grid item xs={4}>
+                  <ValueDisplay 
+                    label="🏃 حرکت کلی"
+                    value={sensorData.isMoving ? "فعال" : "متوقف"}
+                    color={sensorData.isMoving ? "success" : "default"}
+                  />
+                </Grid>
+                <Grid item xs={4}>
+                  <ValueDisplay 
+                    label="اعتماد"
+                    value={sensorData.confidence.toFixed(2)}
+                    color={sensorData.confidence > 0.7 ? "success" : sensorData.confidence > 0.3 ? "warning" : "error"}
+                  />
+                </Grid>
+                <Grid item xs={4}>
+                  <ValueDisplay 
+                    label="سرعت تخمینی"
+                    value={sensorData.estimatedSpeed.toFixed(2)}
+                    unit="m/s"
+                    color="info"
+                  />
+                </Grid>
+              </Grid>
+
+              {/* جزئیات سنسورها */}
+              <Grid container spacing={2} sx={{ mb: 2 }}>
+                <Grid item xs={4}>
+                  <Box sx={{ textAlign: 'center', p: 1, bgcolor: 'grey.50', borderRadius: 2 }}>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+                      📈 شتاب‌سنج
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                      {sensorData.details.acceleration.isMoving ? "✅" : "❌"}
+                    </Typography>
+                    <Typography variant="caption" sx={{ fontSize: '0.7rem' }}>
+                      {sensorData.details.acceleration.value.toFixed(2)} m/s²
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={4}>
+                  <Box sx={{ textAlign: 'center', p: 1, bgcolor: 'grey.50', borderRadius: 2 }}>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+                      🔄 ژیروسکوپ
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                      {sensorData.details.rotation.isMoving ? "✅" : "❌"}
+                    </Typography>
+                    <Typography variant="caption" sx={{ fontSize: '0.7rem' }}>
+                      {sensorData.details.rotation.value.toFixed(1)} °/s
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={4}>
+                  <Box sx={{ textAlign: 'center', p: 1, bgcolor: 'grey.50', borderRadius: 2 }}>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+                      🚶 گام‌شمار
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                      {sensorData.details.steps.isMoving ? "✅" : "❌"}
+                    </Typography>
+                    <Typography variant="caption" sx={{ fontSize: '0.7rem' }}>
+                      {stepCount || 0} کل
+                    </Typography>
+                  </Box>
+                </Grid>
+              </Grid>
+
+              <Divider sx={{ my: 2 }} />
+
               {/* بخش Dead Reckoning */}
               <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 1.5, display: 'flex', alignItems: 'center' }}>
                 <NavigationIcon sx={{ mr: 1 }} />
-                Dead Reckoning
+                Dead Reckoning (مستقل از GPS)
               </Typography>
               <Grid container spacing={2} sx={{ mb: 2 }}>
                 <Grid item xs={3}>
                   <ValueDisplay 
-                    label="جهت DR"
-                    value={drHeading.toFixed(1)}
-                    unit="°"
-                    color="warning"
+                    label="سرعت نهایی"
+                    value={currentSpeed.toFixed(2)}
+                    unit="m/s"
+                    color={currentSpeed > 0 ? "success" : "default"}
                   />
                 </Grid>
                 <Grid item xs={3}>
                   <ValueDisplay 
-                    label="جهت GPS"
-                    value={movementDirection.toFixed(1)}
-                    unit="°"
-                    color="secondary"
+                    label="حرکت آخر"
+                    value={(lastDr?.moved || 0).toFixed(3)}
+                    unit="m"
+                    color="info"
                   />
                 </Grid>
                 <Grid item xs={3}>
                   <ValueDisplay 
-                    label="اختلاف جهت"
-                    value={normalizedDifference.toFixed(1)}
-                    unit="°"
-                    color={normalizedDifference < 10 ? "success" : normalizedDifference < 30 ? "warning" : "error"}
-                  />
-                </Grid>
-                <Grid item xs={3}>
-                  <ValueDisplay 
-                    label="خطای مسافت"
+                    label="انحراف از GPS"
                     value={deviation.toFixed(1)}
                     unit="m"
                     color={deviation < 5 ? "success" : deviation < 15 ? "warning" : "error"}
+                  />
+                </Grid>
+                <Grid item xs={3}>
+                  <ValueDisplay 
+                    label="روش تشخیص"
+                    value={lastDr?.movementMethod?.slice(0, 8) || "ندارد"}
+                    color="secondary"
                   />
                 </Grid>
               </Grid>
 
               <Divider sx={{ my: 2 }} />
 
-              {/* بخش GPS و دقت */}
+              {/* GPS برای مقایسه */}
               <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 1.5 }}>
-                📡 GPS و سرعت
+                📡 GPS (فقط برای مقایسه)
               </Typography>
               <Grid container spacing={2} sx={{ mb: 2 }}>
                 <Grid item xs={3}>
                   <ValueDisplay 
-                    label="سرعت"
-                    value={currentSpeed.toFixed(1)}
+                    label="سرعت GPS"
+                    value={(lastGps?.speed || 0).toFixed(1)}
                     unit="m/s"
                     color="info"
                   />
@@ -374,16 +449,17 @@ export default function DebugPanel({
                 </Grid>
                 <Grid item xs={3}>
                   <ValueDisplay 
-                    label="تعداد نقاط"
-                    value={points.length}
+                    label="جهت GPS"
+                    value={movementDirection.toFixed(1)}
+                    unit="°"
                     color="secondary"
                   />
                 </Grid>
                 <Grid item xs={3}>
                   <ValueDisplay 
-                    label="وضعیت"
-                    value={tracking ? "فعال" : "متوقف"}
-                    color={tracking ? "success" : "default"}
+                    label="تعداد نقاط"
+                    value={points.length}
+                    color="primary"
                   />
                 </Grid>
               </Grid>
@@ -391,20 +467,23 @@ export default function DebugPanel({
               {/* نمایش فرمول‌های محاسبه */}
               <Box sx={{ bgcolor: 'grey.50', p: 2, borderRadius: 2, mt: 2 }}>
                 <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, fontWeight: 'bold' }}>
-                  🧮 فرمول‌های محاسبه:
+                  🔧 تنظیمات فعلی:
                 </Typography>
                 <Typography variant="body2" sx={{ fontFamily: 'monospace', mb: 0.5, fontSize: '0.8rem' }}>
-                  <strong>تصحیح جهت:</strong> (northAngle - rawHeading + 360) % 360
+                  <strong>🎯 تشخیص حرکت:</strong> 100% مستقل از GPS
                 </Typography>
                 <Typography variant="body2" sx={{ fontFamily: 'monospace', mb: 0.5, fontSize: '0.8rem' }}>
-                  <strong>چرخش فلش:</strong> (rawHeading - northAngle + 360) % 360
+                  <strong>📱 سنسورها:</strong> شتاب‌سنج + ژیروسکوپ + گام‌شمار
+                </Typography>
+                <Typography variant="body2" sx={{ fontFamily: 'monospace', mb: 0.5, fontSize: '0.8rem' }}>
+                  <strong>🧭 جهت:</strong> قطب‌نمای کالیبره‌شده
                 </Typography>
                 <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>
-                  <strong>مطابقت:</strong> {Math.abs(calibratedHeading - drHeading) < 10 ? '✅ همسو' : '❌ ناهمسو'}
+                  <strong>🚀 GPS:</strong> فقط نقطه شروع + مقایسه
                 </Typography>
               </Box>
 
-              {/* موقعیت‌های دقیق فقط در حالت فعال */}
+              {/* موقعیت‌های دقیق */}
               {tracking && lastGps && lastDr && (
                 <Box sx={{ bgcolor: 'grey.50', p: 2, borderRadius: 2, mt: 2 }}>
                   <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, fontWeight: 'bold' }}>
@@ -423,7 +502,7 @@ export default function DebugPanel({
         </Paper>
       </Box>
 
-      {/* 🎯 فضای خالی برای جلوگیری از پوشاندن محتوا */}
+      {/* فضای خالی برای جلوگیری از پوشاندن محتوا */}
       <Box sx={{ height: '60px' }} />
     </>
   );
