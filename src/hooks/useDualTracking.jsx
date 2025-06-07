@@ -206,12 +206,14 @@ export function useDualTracking() {
     return northAngle || 0;
   };
 
-  return { 
-    tracking, 
-    points, 
-    start, 
-    stop, 
+  return {
+    tracking,
+    points,
+    start,
+    stop,
     calibrateHeadingOffset,
     offset: getOffset()
   };
 }
+
+export { moveLatLng };
