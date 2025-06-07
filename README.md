@@ -18,7 +18,7 @@ Built with:
 
 ## Prerequisites
 
-* **Node.js** v22.14.0
+* **Node.js** v20.14.0 (LTS)
 * **npm** v10.9.2
 * Windows, macOS, or Linux development environment
 
