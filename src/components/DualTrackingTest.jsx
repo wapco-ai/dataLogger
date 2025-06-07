@@ -67,8 +67,8 @@ function DrArrowMarker({ position, heading }) {
         iconAnchor: [24, 24],
         html: `
        <div style="
-         transform: rotate(${heading}deg);
-         width: 48px; height: 48px;
+         transform: rotate(${-heading}deg);
+          width: 48px; height: 48px;
          display: flex;
          align-items: center;
          justify-content: center;
