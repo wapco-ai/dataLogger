@@ -510,6 +510,7 @@ export default function DebugPanel({
                     />
                   </Grid>
                 </Grid>
+                
                 {/* 🔥 نمایش وضعیت کالیبراسیون */}
                 <Box sx={{ mb: 2 }}>
                   {(() => {
@@ -577,7 +578,6 @@ export default function DebugPanel({
                   })()}
                 </Box>
 
-                {/* دکمه کالیبراسیون */}
                 {/* دکمه کالیبراسیون */}
                 {calibrateHeadingOffset && (
                   <Button
