@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { 
   Box, 
@@ -60,9 +61,16 @@ export default function DebugPanel({
   const northAngle = Number(localStorage.getItem('northAngle')) || 0;
   const rawCompassHeading = deviceOrientation.alpha;
   
-  // ✅ فرمول صحیح همانند useDualTracking
+  // ✅ فرمول صحیح - همانند کد اصلاح‌شده
   const calibratedHeading = northAngle !== 0 ? 
+    (northAngle - rawCompassHeading + 360) % 360 : rawCompassHeading;
+  
+  // ✅ محاسبه جهت NorthAngleArrow برای مقایسه
+  const northArrowRotation = northAngle !== 0 ?
     (rawCompassHeading - northAngle + 360) % 360 : rawCompassHeading;
+    
+  // بهینه‌سازی چرخش (کوتاه‌ترین مسیر)
+  const optimizedRotation = northArrowRotation > 180 ? northArrowRotation - 360 : northArrowRotation;
   
   const lastGps = points.length ? points[points.length - 1]?.gps : null;
   const lastDr = points.length ? points[points.length - 1]?.dr : null;
@@ -88,6 +96,10 @@ export default function DebugPanel({
 
   const deviation = calculateDeviation();
   const isCalibrated = northAngle !== 0;
+
+  // محاسبه اختلاف جهت‌ها
+  const headingDifference = Math.abs(calibratedHeading - drHeading);
+  const normalizedDifference = headingDifference > 180 ? 360 - headingDifference : headingDifference;
 
   // کامپوننت نمایش مقدار با رنگ
   const ValueDisplay = ({ label, value, unit = "", color = "primary", icon, size = "small" }) => (
@@ -182,7 +194,7 @@ export default function DebugPanel({
               />
               <Chip 
                 label={`DR: ${drHeading.toFixed(0)}°`}
-                color="warning"
+                color={normalizedDifference < 10 ? "success" : normalizedDifference < 30 ? "warning" : "error"}
                 size="small"
                 sx={{ fontSize: '0.7rem', minWidth: '55px' }}
               />
@@ -267,8 +279,8 @@ export default function DebugPanel({
                   </Grid>
                   <Grid item xs={3}>
                     <ValueDisplay 
-                      label="انحراف"
-                      value={(rawCompassHeading - northAngle).toFixed(1)}
+                      label="چرخش فلش"
+                      value={optimizedRotation.toFixed(1)}
                       unit="°"
                       color="secondary"
                     />
@@ -302,7 +314,7 @@ export default function DebugPanel({
                 Dead Reckoning
               </Typography>
               <Grid container spacing={2} sx={{ mb: 2 }}>
-                <Grid item xs={4}>
+                <Grid item xs={3}>
                   <ValueDisplay 
                     label="جهت DR"
                     value={drHeading.toFixed(1)}
@@ -310,17 +322,25 @@ export default function DebugPanel({
                     color="warning"
                   />
                 </Grid>
-                <Grid item xs={4}>
+                <Grid item xs={3}>
                   <ValueDisplay 
-                    label="جهت حرکت GPS"
+                    label="جهت GPS"
                     value={movementDirection.toFixed(1)}
                     unit="°"
                     color="secondary"
                   />
                 </Grid>
-                <Grid item xs={4}>
+                <Grid item xs={3}>
                   <ValueDisplay 
-                    label="خطای DR"
+                    label="اختلاف جهت"
+                    value={normalizedDifference.toFixed(1)}
+                    unit="°"
+                    color={normalizedDifference < 10 ? "success" : normalizedDifference < 30 ? "warning" : "error"}
+                  />
+                </Grid>
+                <Grid item xs={3}>
+                  <ValueDisplay 
+                    label="خطای مسافت"
                     value={deviation.toFixed(1)}
                     unit="m"
                     color={deviation < 5 ? "success" : deviation < 15 ? "warning" : "error"}
@@ -367,6 +387,22 @@ export default function DebugPanel({
                 </Grid>
               </Grid>
 
+              {/* نمایش فرمول‌های محاسبه */}
+              <Box sx={{ bgcolor: 'grey.50', p: 2, borderRadius: 2, mt: 2 }}>
+                <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, fontWeight: 'bold' }}>
+                  🧮 فرمول‌های محاسبه:
+                </Typography>
+                <Typography variant="body2" sx={{ fontFamily: 'monospace', mb: 0.5, fontSize: '0.8rem' }}>
+                  <strong>تصحیح جهت:</strong> (northAngle - rawHeading + 360) % 360
+                </Typography>
+                <Typography variant="body2" sx={{ fontFamily: 'monospace', mb: 0.5, fontSize: '0.8rem' }}>
+                  <strong>چرخش فلش:</strong> (rawHeading - northAngle + 360) % 360
+                </Typography>
+                <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>
+                  <strong>مطابقت:</strong> {Math.abs(calibratedHeading - drHeading) < 10 ? '✅ همسو' : '❌ ناهمسو'}
+                </Typography>
+              </Box>
+
               {/* موقعیت‌های دقیق فقط در حالت فعال */}
               {tracking && lastGps && lastDr && (
                 <Box sx={{ bgcolor: 'grey.50', p: 2, borderRadius: 2, mt: 2 }}>
@@ -381,7 +417,6 @@ export default function DebugPanel({
                   </Typography>
                 </Box>
               )}
-
             </Box>
           </Collapse>
         </Paper>
