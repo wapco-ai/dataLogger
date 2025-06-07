@@ -379,9 +379,6 @@ export function useDualTracking() {
   const [points, setPoints] = useState([]);
   const [waitingForAccuracy, setWaitingForAccuracy] = useState(false);
   const [currentAccuracy, setCurrentAccuracy] = useState(999);
-  // 🔥 state جدید برای وضعیت آمادگی سنسور
-  const [sensorReady, setSensorReady] = useState(false);
-  const [compassStable, setCompassStable] = useState(false);
 
   // 🔥 مراجع مستقل از GPS برای Dead Reckoning
   const lastDrRef = useRef(null);
@@ -416,98 +413,14 @@ export function useDualTracking() {
 
   // Listen to device motion (برای تشخیص حرکت)
   useEffect(() => {
-    let stabilityCounter = 0;
-    let lastHeading = null;
-    const STABILITY_THRESHOLD = 3; // تعداد نمونه‌های پایدار
-    const STABILITY_TOLERANCE = 2; // تولرانس درجه
-
-    const handleOrientation = (event) => {
-      if (typeof event.alpha === 'number') {
-        const newHeading = event.alpha;
-        headingRef.current = newHeading;
-
-        // 🔥 بررسی پایداری سنسور
-        if (lastHeading !== null) {
-          const difference = Math.abs(newHeading - lastHeading);
-          const normalizedDiff = Math.min(difference, 360 - difference);
-
-          if (normalizedDiff < STABILITY_TOLERANCE) {
-            stabilityCounter++;
-          } else {
-            stabilityCounter = 0;
-          }
-
-          // سنسور پایدار شده
-          if (stabilityCounter >= STABILITY_THRESHOLD && !compassStable) {
-            console.log('🧭 قطب‌نما پایدار شد - آماده برای کالیبراسیون');
-            setCompassStable(true);
-            setSensorReady(true);
-
-            // 🔥 بازیابی کالیبراسیون با تاخیر
-            setTimeout(() => {
-              restoreCalibrationWithValidation();
-            }, 1000);
-          }
-        }
-
-        lastHeading = newHeading;
-      }
+    const handleMotion = (event) => {
+      accelerationRef.current = event.accelerationIncludingGravity;
+      rotationRateRef.current = event.rotationRate;
     };
 
-    window.addEventListener('deviceorientation', handleOrientation);
-    return () => window.removeEventListener('deviceorientation', handleOrientation);
-  }, [compassStable]);
-
-  // 🔥 تابع بازیابی کالیبراسیون با validation
-  const restoreCalibrationWithValidation = () => {
-    try {
-      const savedAngle = localStorage.getItem('northAngle');
-      const calibrationData = localStorage.getItem('calibrationData');
-
-      if (!savedAngle || !calibrationData) {
-        console.log('⚠️ کالیبراسیون ذخیره‌شده‌ای یافت نشد');
-        return;
-      }
-
-      const data = JSON.parse(calibrationData);
-      const ageHours = (Date.now() - data.timestamp) / (1000 * 60 * 60);
-
-      // بررسی اعتبار کالیبراسیون
-      if (ageHours > 48) { // 2 روز
-        console.warn('⚠️ کالیبراسیون قدیمی - پاک کردن...');
-        localStorage.removeItem('northAngle');
-        localStorage.removeItem('calibrationData');
-        return;
-      }
-
-      const northAngle = Number(savedAngle);
-      if (isNaN(northAngle) || northAngle < 0 || northAngle >= 360) {
-        console.warn('⚠️ مقدار کالیبراسیون نامعتبر');
-        return;
-      }
-
-      // بررسی سازگاری با heading فعلی
-      const currentHeading = headingRef.current;
-      if (currentHeading !== null) {
-        const expectedCalibratedHeading = (northAngle - currentHeading + 360) % 360;
-
-        console.log(`🔄 بازیابی کالیبراسیون:`);
-        console.log(`   - زاویه شمال ذخیره‌شده: ${northAngle.toFixed(1)}°`);
-        console.log(`   - heading فعلی: ${currentHeading.toFixed(1)}°`);
-        console.log(`   - heading کالیبره‌شده: ${expectedCalibratedHeading.toFixed(1)}°`);
-        console.log(`   - کیفیت: ${data.quality || 'نامشخص'}`);
-        console.log(`   - قدمت: ${ageHours.toFixed(1)} ساعت`);
-
-        // اعمال کالیبراسیون
-        window.dispatchEvent(new Event('storage'));
-        console.log('✅ کالیبراسیون بازیابی شد');
-      }
-    } catch (error) {
-      console.error('❌ خطا در بازیابی کالیبراسیون:', error);
-      localStorage.removeItem('northAngle');
-      localStorage.removeItem('calibrationData');
-    }
-  };
+    window.addEventListener("devicemotion", handleMotion, true);
+    return () => window.removeEventListener("devicemotion", handleMotion, true);
+  }, []);
 
   // 🔥 GPS فقط برای نقطه شروع و مقایسه - بدون تأثیر بر DR
   useEffect(() => {
@@ -709,44 +622,9 @@ export function useDualTracking() {
     };
   }, [tracking]);
 
+
+  // 🔥 تابع start بهبود یافته در useDualTracking.jsx
   const start = async () => {
-    // 🔥 انتظار برای آماده شدن سنسور
-    if (!sensorReady) {
-      console.log('⏳ انتظار برای آماده شدن سنسور...');
-      alert('⏳ لطفاً کمی صبر کنید تا سنسورها آماده شوند...');
-
-      // انتظار حداکثر 5 ثانیه
-      let waitTime = 0;
-      const checkInterval = setInterval(() => {
-        waitTime += 500;
-        if (sensorReady || waitTime >= 5000) {
-          clearInterval(checkInterval);
-          if (sensorReady) {
-            console.log('✅ سنسور آماده شد');
-            proceedWithStart();
-          } else {
-            console.warn('⚠️ سنسور آماده نشد - ادامه با حالت عادی');
-            proceedWithStart();
-          }
-        }
-      }, 500);
-      return;
-    }
-
-    proceedWithStart();
-  };
-
-  // 🔥 تابع واقعی start
-  const proceedWithStart = async () => {
-    // ... کدهای قبلی تابع start را اینجا قرار دهید ...
-    setTracking(true);
-
-    // بررسی کالیبراسیون
-    const northAngle = Number(localStorage.getItem('northAngle')) || 0;
-    if (northAngle === 0) {
-      alert('⚠️ توصیه: ابتدا قطب‌نما را کالیبره کنید');
-    }
-
     // درخواست مجوز حسگرها
     if (typeof DeviceOrientationEvent !== 'undefined' &&
       typeof DeviceOrientationEvent.requestPermission === 'function') {
