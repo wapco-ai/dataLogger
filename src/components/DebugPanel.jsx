@@ -17,7 +17,8 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  Alert
+  Alert,
+  CircularProgress
 } from '@mui/material';
 import BugReportIcon from '@mui/icons-material/BugReport';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
@@ -68,6 +69,8 @@ export default function DebugPanel({
     lastValues: []
   });
   const [sensitivityMode, setSensitivityMode] = useState('preset'); // 'preset' یا 'custom'
+  const [calibrationInProgress, setCalibrationInProgress] = useState(false);
+  const [calibrationProgress, setCalibrationProgress] = useState(0);
   // 🔥 اطلاع دادن به والد از تغییر وضعیت پنل
   useEffect(() => {
     if (onExpandedChange) {
@@ -582,25 +585,53 @@ export default function DebugPanel({
                     variant="contained"
                     color="primary"
                     size="large"
-                    startIcon={<ExploreIcon />}
+                    startIcon={calibrationInProgress ? <CircularProgress size={20} color="inherit" /> : <ExploreIcon />}
+                    disabled={calibrationInProgress}
                     onClick={() => {
+                      setCalibrationInProgress(true);
+                      setCalibrationProgress(0);
+
                       const result = calibrateHeadingOffset();
 
-                      // 🔥 مدیریت حالت‌های مختلف return
                       if (result === null) {
-                        // در حال پردازش - نمونه‌گیری شروع شده
-                        alert('🔄 کالیبراسیون شروع شد. لطفاً 2 ثانیه ثابت بمانید...');
+                        // شبیه‌سازی پیشرفت
+                        let progress = 0;
+                        const progressInterval = setInterval(() => {
+                          progress += 10;
+                          setCalibrationProgress(progress);
+
+                          if (progress >= 100) {
+                            clearInterval(progressInterval);
+                            setCalibrationInProgress(false);
+                            setCalibrationProgress(0);
+
+                            // بررسی نتیجه نهایی
+                            setTimeout(() => {
+                              const finalResult = localStorage.getItem('northAngle');
+                              if (finalResult && Number(finalResult) !== 0) {
+                                alert(`✅ کالیبراسیون تکمیل شد: ${Number(finalResult).toFixed(1)}°`);
+                              } else {
+                                alert('❌ کالیبراسیون ناموفق. لطفاً دوباره تلاش کنید.');
+                              }
+                            }, 500);
+                          }
+                        }, 200);
+
+                        alert('🔄 کالیبراسیون شروع شد. لطفاً ثابت بمانید...');
                       } else if (result === 0) {
-                        // کالیبراسیون ناموفق
+                        setCalibrationInProgress(false);
                         alert('❌ کالیبراسیون ناموفق. لطفاً دوباره تلاش کنید.');
                       } else {
-                        // کالیبراسیون موفق
+                        setCalibrationInProgress(false);
                         alert(`✅ جهت شمال کالیبره شد: ${result.toFixed(1)}°`);
                       }
                     }}
                     sx={{ mb: 2, py: 1.5 }}
                   >
-                    🧭 کالیبره کردن شمال (رو به شمال بایستید)
+                    {calibrationInProgress
+                      ? `🔄 در حال کالیبراسیون... ${calibrationProgress}%`
+                      : '🧭 کالیبره کردن شمال (رو به شمال بایستید)'
+                    }
                   </Button>
                 )}
               </Box>
