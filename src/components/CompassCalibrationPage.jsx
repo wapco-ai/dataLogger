@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from "react";
 import {
   Box,
@@ -40,28 +41,54 @@ export default function CompassCalibrationPage() {
 
   const navigate = useNavigate();
 
-
+  // 🔧 وضعیت کالیبراسیون شمال
   const [northSet, setNorthSet] = useState(false);
   const [northAngle, setNorthAngle] = useState(Number(localStorage.getItem('northAngle')) || null);
-  // مدل جدید: کاربر گوشی را رو به شمال واقعی می‌گیرد و ثبت می‌کند
-  const handleSetNorth = () => {
+
+  // 🔧 تابع ثبت جهت شمال فیزیکی
+  const handleSetNorth = async () => {
     if (!window.DeviceOrientationEvent) {
       setError('سنسور جهت‌یابی پشتیبانی نمی‌شود.');
       return;
     }
-    alert('گوشی را به سمت شمال واقعی نگه دارید و تایید را بزنید.');
+
+    // درخواست مجوز برای iOS
+    if (typeof window.DeviceOrientationEvent.requestPermission === "function") {
+      try {
+        const permission = await window.DeviceOrientationEvent.requestPermission();
+        if (permission !== "granted") {
+          setError("دسترسی به سنسور جهت‌یابی رد شد.");
+          return;
+        }
+      } catch (err) {
+        setError("خطا در درخواست دسترسی: " + err.message);
+        return;
+      }
+    }
+
+    // راهنمای کاربر
+    const userConfirm = window.confirm('گوشی را دقیقاً به سمت شمال واقعی (قطب شمال مغناطیسی) نگه دارید و OK را بزنید.');
+    if (!userConfirm) return;
 
     const onOrientation = (event) => {
-      const angle = event.alpha;
-      setNorthAngle(angle);
-      localStorage.setItem('northAngle', angle);
-      setNorthSet(true);
-      setError('');
-      window.removeEventListener('deviceorientation', onOrientation);
+      if (typeof event.alpha === 'number') {
+        const angle = event.alpha;
+        setNorthAngle(angle);
+        localStorage.setItem('northAngle', angle.toString());
+        setNorthSet(true);
+        setError('');
+        alert(`جهت شمال با موفقیت ثبت شد: ${angle.toFixed(1)}°`);
+        window.removeEventListener('deviceorientation', onOrientation);
+      }
     };
-    window.addEventListener('deviceorientation', onOrientation, { once: true });
-  };
 
+    window.addEventListener('deviceorientation', onOrientation, { once: true });
+    
+    // تایمر برای جلوگیری از انتظار بی‌نهایت
+    setTimeout(() => {
+      window.removeEventListener('deviceorientation', onOrientation);
+    }, 5000);
+  };
 
   // ثابت و همیشه بدون وابستگی به state:
   function handleOrientation(event) {
@@ -86,10 +113,16 @@ export default function CompassCalibrationPage() {
       const vals = last50.map(r => r.alpha);
       const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
       const variance = Math.sqrt(vals.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / vals.length);
+      
       let q = "ضعیف", p = 20, c = "error";
-      if (variance < 5) { q = "عالی"; p = 100; c = "success"; }
-      else if (variance < 15) { q = "خوب"; p = 70; c = "warning"; }
-      else if (variance < 30) { q = "متوسط"; p = 40; c = "warning"; }
+      if (variance < 5) { 
+        q = "عالی"; p = 100; c = "success"; 
+      } else if (variance < 15) { 
+        q = "خوب"; p = 70; c = "warning"; 
+      } else if (variance < 30) { 
+        q = "متوسط"; p = 40; c = "warning"; 
+      }
+      
       setQuality(q);
       setQualityPercent(p);
       setQualityColor(c);
@@ -104,6 +137,7 @@ export default function CompassCalibrationPage() {
       setError("سنسور جهت‌یابی پشتیبانی نمی‌شود.");
       return;
     }
+    
     // iOS - Permission request
     if (typeof window.DeviceOrientationEvent.requestPermission === "function") {
       try {
@@ -117,6 +151,7 @@ export default function CompassCalibrationPage() {
         return;
       }
     }
+    
     // ریست مقدارها
     readingsRef.current = [];
     setAlpha("--");
@@ -156,14 +191,30 @@ export default function CompassCalibrationPage() {
       setQualityColor("error");
       return;
     }
+    
     const vals = readingsRef.current.map(r => r.alpha);
     const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
     const variance = Math.sqrt(vals.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / vals.length);
 
     let q = "ضعیف", p = 20, c = "error", d = "نیاز به کالیبراسیون — گوشی را به شکل ۸ انگلیسی حرکت دهید", ic = <ErrorOutlineIcon color="error" fontSize="large" />, bg = "#fffbe6";
-    if (variance < 5) { q = "عالی"; p = 100; c = "success"; d = "کالیبراسیون عالی — قطب‌نما آماده استفاده است"; ic = <CheckCircleIcon color="success" fontSize="large" />; bg = "#e6fce6"; }
-    else if (variance < 15) { q = "خوب"; p = 70; c = "warning"; d = "کالیبراسیون خوب — مناسب برای اغلب کاربردها"; ic = <CheckCircleIcon color="warning" fontSize="large" />; bg = "#fffbe6"; }
-    else if (variance < 30) { q = "متوسط"; p = 40; c = "warning"; d = "کالیبراسیون متوسط — بهتر است گوشی را دوباره کالیبره کنید"; ic = <InfoOutlinedIcon color="warning" fontSize="large" />; bg = "#fffbe6"; }
+    
+    if (variance < 5) { 
+      q = "عالی"; p = 100; c = "success"; 
+      d = "کالیبراسیون عالی — قطب‌نما آماده استفاده است"; 
+      ic = <CheckCircleIcon color="success" fontSize="large" />; 
+      bg = "#e6fce6"; 
+    } else if (variance < 15) { 
+      q = "خوب"; p = 70; c = "warning"; 
+      d = "کالیبراسیون خوب — مناسب برای اغلب کاربردها"; 
+      ic = <CheckCircleIcon color="warning" fontSize="large" />; 
+      bg = "#fffbe6"; 
+    } else if (variance < 30) { 
+      q = "متوسط"; p = 40; c = "warning"; 
+      d = "کالیبراسیون متوسط — بهتر است گوشی را دوباره کالیبره کنید"; 
+      ic = <InfoOutlinedIcon color="warning" fontSize="large" />; 
+      bg = "#fffbe6"; 
+    }
+    
     setQuality(q);
     setQualityPercent(p);
     setQualityColor(c);
@@ -220,6 +271,7 @@ export default function CompassCalibrationPage() {
         }}>
         <ArrowBackIosNewIcon />
       </IconButton>
+      
       <Typography variant="h5" fontWeight="bold" align="center" color="primary" mb={2} sx={{ letterSpacing: "0.5px", mt: 2, mb: 2 }}>
         🧭 بررسی کالیبراسیون قطب‌نما
       </Typography>
@@ -304,45 +356,48 @@ export default function CompassCalibrationPage() {
         >
           {running ? "⏹️ توقف" : "🎯 شروع بررسی"}
         </Button>
-        {/* دکمه جدید ثبت شمال فیزیکی */}
-        <Button fullWidth size="large" variant="contained" color="info"
-          onClick={handleSetNorth}
-          sx={{ fontWeight: "bold", fontSize: "16px", py: 1.3 }}>
-          🧭 ثبت شمال فیزیکی
-        </Button>
-        {/* راهنمای کالیبراسیون */}
-        <Button fullWidth size="large" variant="contained" color="warning"
-          onClick={() => setShowGuide((g) => !g)}
-          sx={{ fontWeight: "bold", fontSize: "16px", py: 1.3 }}>
-          🔄 راهنمای کالیبراسیون
-        </Button>
       </Box>
+
+      {/* دکمه ثبت شمال فیزیکی */}
+      <Button fullWidth size="large" variant="contained" color="info"
+        onClick={handleSetNorth}
+        sx={{ fontWeight: "bold", fontSize: "16px", py: 1.3, mb: 1 }}>
+        🧭 ثبت شمال فیزیکی
+      </Button>
+
+      {/* راهنمای کالیبراسیون */}
+      <Button fullWidth size="large" variant="outlined" color="warning"
+        onClick={() => setShowGuide((g) => !g)}
+        sx={{ fontWeight: "bold", fontSize: "16px", py: 1.3, mb: 2 }}>
+        {showGuide ? "پنهان کردن راهنما" : "🔄 راهنمای کالیبراسیون"}
+      </Button>
       
-      {northSet &&
+      {/* وضعیت کالیبراسیون شمال */}
+      {northSet && (
         <Box mt={1} mb={2}>
           <Typography color="success.main" fontWeight="bold" align="center">
-            جهت شمال با موفقیت ثبت شد! (زاویه فعلی: {northAngle && northAngle.toFixed(1)}°)
+            ✅ جهت شمال با موفقیت ثبت شد! (زاویه: {northAngle && northAngle.toFixed(1)}°)
           </Typography>
         </Box>
-      }
-      {northAngle && !northSet &&
+      )}
+      
+      {northAngle && !northSet && (
         <Box mt={1} mb={2}>
           <Typography color="info.main" fontWeight="bold" align="center">
-            زاویه شمال قبلاً ثبت شده است: {northAngle.toFixed(1)}°
+            ℹ️ زاویه شمال قبلاً ثبت شده: {northAngle.toFixed(1)}°
           </Typography>
         </Box>
-      }
-
+      )}
 
       {/* راهنما */}
       <Collapse in={showGuide} sx={{ mb: 2 }}>
         <Paper sx={{ p: 2, bgcolor: "#fffbe6", borderRight: "4px solid #ff9800", mb: 2, borderRadius: 2, }}>
           <Typography fontWeight="bold" mb={1}>📋 دستورات کالیبراسیون:</Typography>
           <ol style={{ paddingRight: 18, margin: 0 }}>
-            <li>گوشی را در دست بگیرید</li>
-            <li>آن را به شکل عدد ۸ انگلیسی حرکت دهید</li>
-            <li>در همه جهات بچرخانید</li>
-            <li>حرکت را ۱۵ ثانیه ادامه دهید</li>
+            <li><strong>کالیبراسیون سنسور:</strong> گوشی را به شکل عدد ۸ انگلیسی حرکت دهید</li>
+            <li><strong>چرخش کامل:</strong> در همه جهات بچرخانید</li>
+            <li><strong>مدت زمان:</strong> حرکت را ۱۵ ثانیه ادامه دهید</li>
+            <li><strong>ثبت شمال:</strong> سپس گوشی را رو به شمال واقعی بگیرید و "ثبت شمال فیزیکی" را بزنید</li>
           </ol>
         </Paper>
       </Collapse>
@@ -365,9 +420,10 @@ export default function CompassCalibrationPage() {
       >
         بازگشت به نقشه
       </Button>
+      
       {error && (
         <Typography color="error" fontWeight="bold" align="center" mt={1}>
-          {error}
+          ❌ {error}
         </Typography>
       )}
     </Box>

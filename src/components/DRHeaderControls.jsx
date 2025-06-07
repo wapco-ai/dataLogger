@@ -1,8 +1,8 @@
+
 import { Box, Typography, Tooltip, IconButton, Chip, Paper } from "@mui/material";
 import ExploreIcon from "@mui/icons-material/Explore";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 
-// props: { calibrateHeadingOffset, offset, compassStatus }
 export function DRHeaderControls({ calibrateHeadingOffset, offset = 0, compassStatus = "سنسور قطب‌نما کالیبره است" }) {
   return (
     <Box sx={{
@@ -12,44 +12,47 @@ export function DRHeaderControls({ calibrateHeadingOffset, offset = 0, compassSt
       flexDirection: "column",
       alignItems: "stretch"
     }}>
-      {/* تیتر جمع‌وجور */}
-      {/* <Typography variant="h6" fontWeight="bold" fontSize={17} mb={0.5} sx={{ textAlign: "center", letterSpacing: 0.1 }}>
-        تست مسیر GPS/DR
-      </Typography> */}
-      <Typography fontSize={13} color="text.secondary" sx={{ textAlign: "center", mb: 1 }}>
+      {/* تیتر اصلی */}
+      <Typography fontSize={10} color="text.secondary" sx={{ textAlign: "center", mb: 1 }}>
         مسیر آزمایشی مقایسه GPS و Dead Reckoning
       </Typography>
 
-      {/* ردیف دکمه و افست */}
-      <Box sx={{
-        display: "flex", alignItems: "center",
-        justifyContent: "center", gap: 1, mb: 1
-      }}>
-        <Tooltip title="گوشی را رو به شمال واقعی بگیرید و سپس این دکمه را بزنید">
-          <Paper elevation={3} sx={{
-            bgcolor: "#1976d2",
-            borderRadius: 3, px: 2, py: 0.5, boxShadow: 1,
-            display: "flex", alignItems: "center", cursor: "pointer"
-          }}
-            onClick={calibrateHeadingOffset}
-          >
-            <ExploreIcon sx={{ color: "#fff", mr: 0.5 }} />
-            <Typography sx={{
-              color: "#fff", fontWeight: "bold", fontSize: 14
-            }}>
-              کالیبره جهت DR
-            </Typography>
-          </Paper>
-        </Tooltip>
-        <Chip
-          label={`افست فعلی: ${Math.round(offset)}°`}
-          sx={{
-            bgcolor: "#f3f5fb", color: "#1976d2",
-            fontWeight: "bold", fontSize: 12,
-            height: 32, borderRadius: 2
-          }}
-        />
-      </Box>
+      {/* ردیف دکمه کالیبراسیون و افست - فقط نمایش داده شود اگر تابع ارسال شده باشد */}
+      {calibrateHeadingOffset && (
+        <Box sx={{
+          display: "flex", alignItems: "center",
+          justifyContent: "center", gap: 1, mb: 1
+        }}>
+          <Tooltip title="گوشی را رو به شمال واقعی بگیرید و سپس این دکمه را بزنید">
+            <Paper elevation={3} sx={{
+              bgcolor: "#1976d2",
+              borderRadius: 3, px: 2, py: 0.5, boxShadow: 1,
+              display: "flex", alignItems: "center", cursor: "pointer"
+            }}
+              onClick={() => {
+                const newOffset = calibrateHeadingOffset();
+                alert(`جهت شمال کالیبره شد: ${newOffset.toFixed(1)}°`);
+              }}
+            >
+              <ExploreIcon sx={{ color: "#fff", mr: 0.5 }} />
+              <Typography sx={{
+                color: "#fff", fontWeight: "bold", fontSize: 14
+              }}>
+                کالیبره جهت DR
+              </Typography>
+            </Paper>
+          </Tooltip>
+          
+          <Chip
+            label={`افست فعلی: ${Math.round(offset)}°`}
+            sx={{
+              bgcolor: "#f3f5fb", color: "#1976d2",
+              fontWeight: "bold", fontSize: 12,
+              height: 32, borderRadius: 2
+            }}
+          />
+        </Box>
+      )}
 
       {/* پیام وضعیت کالیبراسیون قطب‌نما */}
       <Paper elevation={0} sx={{

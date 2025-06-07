@@ -1,39 +1,70 @@
+
 import { useState, useRef, useEffect } from "react";
 import { useDualTracking } from "../hooks/useDualTracking";
 import { MapContainer, TileLayer, Polyline, Circle, Marker, useMap } from "react-leaflet";
 import { Box, Typography, IconButton, Tooltip } from "@mui/material";
-import PlayArrowIcon from '@mui/icons-material/PlayArrow';
-import StopIcon from '@mui/icons-material/Stop';
 import GpsFixedIcon from '@mui/icons-material/GpsFixed';
 import ExploreIcon from '@mui/icons-material/Explore';
 import BlockIcon from '@mui/icons-material/Block';
 import TextSnippetIcon from '@mui/icons-material/TextSnippet';
 import ListAltIcon from '@mui/icons-material/ListAlt';
-import { Button } from "@mui/material";
-import { DRHeaderControls } from "./DRHeaderControls";
-// import useCompassCalibration from '../hooks/useCompassCalibration';
-import CompassStatus from "./CompassStatus"; // مسیر مناسب را تنظیم کن
+import DebugPanel from "./DebugPanel";
 import L from "leaflet";
 
+// بقیه توابع helper همان‌طور که قبلاً بود...
 
-// 1) Compute heading from the last two DR points (in degrees clockwise from north)
+// ✅ فرمول تصحیح شده برای محاسبه جهت
 function calcDrHeading(path) {
     if (path.length < 2) return 0;
+
     const [lat1, lng1] = path[path.length - 2];
     const [lat2, lng2] = path[path.length - 1];
-    // dy = northward, dx = eastward
-    const dy = lat2 - lat1;
-    const dx = lng2 - lng1;
-    // atan2(dx, dy) gives angle relative to north
-    return (Math.atan2(dx, dy) * 180 / Math.PI + 360) % 360;
+
+    const lat1Rad = lat1 * Math.PI / 180;
+    const lat2Rad = lat2 * Math.PI / 180;
+    const deltaLng = (lng2 - lng1) * Math.PI / 180;
+
+    const y = Math.sin(deltaLng) * Math.cos(lat2Rad);
+    const x = Math.cos(lat1Rad) * Math.sin(lat2Rad) -
+        Math.sin(lat1Rad) * Math.cos(lat2Rad) * Math.cos(deltaLng);
+
+    let bearing = Math.atan2(y, x) * 180 / Math.PI;
+    
+    // ✅ تصحیح فرمول - تبدیل از mathematical bearing به geographic bearing
+    bearing = (90 - bearing + 360) % 360;
+
+    return bearing;
 }
 
-// 2) SVG arrow inside a DivIcon, rotated by `heading`
+function calcGpsMovementDirection(points) {
+    if (points.length < 2) return 0;
+
+    const lastTwo = points.slice(-2);
+    const [prev, curr] = lastTwo.map(p => p.gps);
+
+    const lat1Rad = prev.latitude * Math.PI / 180;
+    const lat2Rad = curr.latitude * Math.PI / 180;
+    const deltaLng = (curr.longitude - prev.longitude) * Math.PI / 180;
+
+    const y = Math.sin(deltaLng) * Math.cos(lat2Rad);
+    const x = Math.cos(lat1Rad) * Math.sin(lat2Rad) -
+        Math.sin(lat1Rad) * Math.cos(lat2Rad) * Math.cos(deltaLng);
+
+    let bearing = Math.atan2(y, x) * 180 / Math.PI;
+    
+    // ✅ همین تصحیح برای GPS هم
+    bearing = (90 - bearing + 360) % 360;
+
+    return bearing;
+}
+
+
+// ✅ کامپوننت فلش DR تصحیح شده
 function DrArrowMarker({ position, heading }) {
     const icon = L.divIcon({
-        className: "",              // no extra CSS
-        iconSize: [48, 48],         // adjust as you like
-        iconAnchor: [24, 24],       // center on the point
+        className: "",
+        iconSize: [48, 48],
+        iconAnchor: [24, 24],
         html: `
        <div style="
          transform: rotate(${heading}deg);
@@ -42,7 +73,6 @@ function DrArrowMarker({ position, heading }) {
          align-items: center;
          justify-content: center;
        ">
-         <!-- simple arrow SVG -->
          <svg width="32" height="32" viewBox="0 0 24 24" fill="orange" xmlns="http://www.w3.org/2000/svg">
            <path d="M12 2 L19 21 L12 17 L5 21 Z"/>
          </svg>
@@ -114,23 +144,63 @@ function AutoRecenter({ gps, dr, mode }) {
     return null;
 }
 
+function calculateDistance(lat1, lng1, lat2, lng2) {
+    const R = 6371000;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLng / 2) * Math.sin(dLng / 2);
+
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+}
+
 export default function DualTrackingTest({ mode, actions, mapHeight }) {
-    // wrap the hook’s start so we can also flip followMode → 'gps'
-    // const { tracking, points, start: hookStart, stop } = useDualTracking();
     const { tracking, points, start: hookStart, stop, calibrateHeadingOffset, offset } = useDualTracking();
-    const start = () => { hookStart(); setFollowMode("gps"); };
+
+    const handleStartStop = () => {
+        if (tracking) {
+            stop();
+        } else {
+            hookStart();
+            setFollowMode("gps");
+        }
+    };
+
     const lastGps = points.length ? points[points.length - 1].gps : null;
     const lastDr = points.length ? points[points.length - 1].dr : null;
     const gpsPath = toLatLngArr(points, "gps");
     const drPath = toLatLngArr(points, "dr");
-    // in mapOnly mode we want to always follow GPS
-    const [followMode, setFollowMode] = useState(mode === "mapOnly" ? "gps" : "off");
-    const [initialGps, setInitialGps] = useState(null);
-    const [pendingZoomTarget, setPendingZoomTarget] = useState(null);
-    const mapRef = useRef(null);
-    const firstZoomed = useRef(false);
 
+    const [followMode, setFollowMode] = useState(mode === "mapOnly" ? "gps" : "off");
+    const [currentHeading, setCurrentHeading] = useState(0);
+    const mapRef = useRef(null);
+
+    // محاسبه جهت‌های مختلف برای Debug Panel
     const drHeading = calcDrHeading(drPath);
+    const movementDirection = calcGpsMovementDirection(points);
+
+    // ✅ محاسبه جهت کالیبره‌شده برای فلش DR
+    const getCalibratedHeading = () => {
+        const northAngle = Number(localStorage.getItem('northAngle')) || 0;
+        if (northAngle !== 0) {
+            return (currentHeading - northAngle + 360) % 360;
+        }
+        return currentHeading;
+    };
+
+    // دریافت جهت فعلی سنسور
+    useEffect(() => {
+        const handleOrientation = (event) => {
+            if (typeof event.alpha === 'number') {
+                setCurrentHeading(event.alpha);
+            }
+        };
+        window.addEventListener('deviceorientation', handleOrientation);
+        return () => window.removeEventListener('deviceorientation', handleOrientation);
+    }, []);
 
     useEffect(() => {
         if (mode === 'full' && !tracking && mapRef.current) {
@@ -138,10 +208,7 @@ export default function DualTrackingTest({ mode, actions, mapHeight }) {
                 (position) => {
                     const lat = position.coords.latitude;
                     const lng = position.coords.longitude;
-                    setInitialGps({ latitude: lat, longitude: lng });
-
                     mapRef.current.setView([lat, lng], 17);
-                    firstZoomed.current = true;
                 },
                 (error) => {
                     console.warn("Failed to fetch initial GPS:", error);
@@ -151,48 +218,11 @@ export default function DualTrackingTest({ mode, actions, mapHeight }) {
         }
     }, [mode, tracking, mapRef.current]);
 
-
-    useEffect(() => {
-        const target = lastGps || initialGps;
-        if (mode === 'full' && target && !firstZoomed.current) {
-            setPendingZoomTarget(target);
-        }
-        if (mode !== 'full') {
-            firstZoomed.current = false;
-        }
-    }, [mode, lastGps, initialGps]);
-
-    // compact = render *only* the controls passed via `actions(...)`
-    // if (mode === "compact" && typeof actions === "function") {
-    //     return actions({
-    //       tracking,
-    //       points,
-    //       start,
-    //       stop,
-    //       exportDualCSV,
-    //       exportDualGeoJSON
-    //     });
-    // }
-
     return (
-        <Box sx={{ height: "100%", display: "flex", flexDirection: "column", direction: "rtl" }}>
-            <DRHeaderControls
-                    calibrateHeadingOffset={calibrateHeadingOffset}
-                    offset={offset}
-                    compassStatus="سنسور قطب‌نما کالیبره است" // یا هر پیام دلخواه
-                />
-            {/* <Box sx={{ textAlign: "center", py: 1 }}>
-                <Typography variant="h6" fontSize={15}>مسیرآزمایشی مقایسه GPS و Dead Reckoning</Typography>
-            </Box> */}
+        <Box sx={{ height: "100%", display: "flex", flexDirection: "column", direction: "rtl", position: "relative" }}>
 
+            {/* دکمه‌های Export */}
             <Box sx={{ display: "flex", justifyContent: "center", gap: 2, pb: 1 }}>
-                
-                <Tooltip title={tracking ? "پایان مسیر" : "شروع مسیر"}>
-                    <IconButton color={tracking ? "error" : "success"} onClick={tracking ? stop : start} size="large">
-                        {tracking ? <StopIcon /> : <PlayArrowIcon />}
-                    </IconButton>
-                </Tooltip>
-
                 <Tooltip title="خروجی CSV">
                     <span>
                         <IconButton color="success" disabled={!points.length} onClick={() => exportDualCSV(points)} size="large">
@@ -208,9 +238,9 @@ export default function DualTrackingTest({ mode, actions, mapHeight }) {
                         </IconButton>
                     </span>
                 </Tooltip>
-
             </Box>
-            {/* <CompassStatus /> */}
+
+            {/* نقشه */}
             <Box sx={{ flex: 1, minHeight: 0 }}>
                 <MapContainer
                     center={gpsPath.length ? gpsPath[gpsPath.length - 1] : [36.2972, 59.6067]}
@@ -218,7 +248,6 @@ export default function DualTrackingTest({ mode, actions, mapHeight }) {
                     style={{ height: "100%", width: "100%" }}
                     whenCreated={(mapInstance) => {
                         mapRef.current = mapInstance;
-                        // **initial GPS zoom** when modal opens
                         if (mode !== "compact") {
                             navigator.geolocation.getCurrentPosition(
                                 (pos) => mapInstance.setView([pos.coords.latitude, pos.coords.longitude], 17),
@@ -233,21 +262,24 @@ export default function DualTrackingTest({ mode, actions, mapHeight }) {
                     <Polyline positions={drPath} color="orange" weight={4} opacity={0.7} dashArray="6 8" />
                     {lastGps && <Circle center={[lastGps.latitude, lastGps.longitude]} radius={6} color="blue" />}
                     {lastDr && <Circle center={[lastDr.latitude, lastDr.longitude]} radius={6} color="orange" />}
+                    
+                    {/* ✅ فلش DR با جهت کالیبره‌شده */}
                     {drPath.length > 0 && (
                         <DrArrowMarker
                             position={drPath[drPath.length - 1]}
-                            heading={drHeading}
+                            // heading={getCalibratedHeading()} // ✅ استفاده از جهت کالیبره‌شده
+                            heading={calcDrHeading(drPath)} // ✅ استفاده از جهت محاسبه شده مسیر DR
                         />
                     )}
                     <AutoRecenter gps={lastGps} dr={lastDr} mode={followMode} />
                 </MapContainer>
 
-
+                {/* دکمه Follow */}
                 <Box
                     sx={{
                         position: "absolute",
                         bottom: 46,
-                        right: 23,
+                        right: 5,
                         zIndex: 1000,
                         backgroundColor: "#fff",
                         borderRadius: "50%",
@@ -281,30 +313,18 @@ export default function DualTrackingTest({ mode, actions, mapHeight }) {
                     </Tooltip>
                 </Box>
             </Box>
-
-            {points.length > 0 && (
-                <Box sx={{ py: 1, px: 2 }}>
-                    <Typography variant="subtitle2">تعداد نقاط: {points.length}</Typography>
-                    <Typography variant="body2">
-                        آخرین GPS: {lastGps ? `${lastGps.latitude.toFixed(6)}, ${lastGps.longitude.toFixed(6)}` : "-"}
-                        <br />
-                        آخرین Dead Reckoning: {lastDr ? `${lastDr.latitude.toFixed(6)}, ${lastDr.longitude.toFixed(6)}` : "-"}
-                        <br />
-                        خطای لحظه‌ای (متر): {lastGps && lastDr ? (
-                            Math.sqrt(
-                                Math.pow((lastGps.latitude - lastDr.latitude) * 111320, 2) +
-                                Math.pow(
-                                    (lastGps.longitude - lastDr.longitude) *
-                                    40075000 *
-                                    Math.cos((lastGps.latitude * Math.PI) / 180) /
-                                    360,
-                                    2
-                                )
-                            ).toFixed(2)
-                        ) : "-"}
-                    </Typography>
-                </Box>
-            )}
+            
+            {/* پنل دیباگ */}
+            <DebugPanel
+                points={points}
+                tracking={tracking}
+                currentHeading={currentHeading}
+                drHeading={drHeading}
+                movementDirection={movementDirection}
+                calibrateHeadingOffset={calibrateHeadingOffset}
+                offset={offset}
+                onStartStop={handleStartStop}
+            />
         </Box>
     );
 }

@@ -1,8 +1,35 @@
-import React from "react";
+
+import React, { useState, useEffect } from "react";
 import { Box, Typography } from "@mui/material";
 import ExploreIcon from "@mui/icons-material/Explore";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
-import useCompassCalibration from "../hooks/useCompassCalibration";
+
+// Hook ساده برای بررسی کالیبراسیون
+function useCompassCalibration() {
+  const [calibrated, setCalibratedStatus] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    // بررسی وجود northAngle در localStorage
+    const northAngle = localStorage.getItem('northAngle');
+    
+    if (northAngle && Number(northAngle) !== 0) {
+      setCalibratedStatus(true);
+      setError("");
+    } else {
+      setCalibratedStatus(false);
+      setError("نیاز به کالیبراسیون شمال");
+    }
+
+    // بررسی دسترسی به سنسور
+    if (!window.DeviceOrientationEvent) {
+      setCalibratedStatus(false);
+      setError("سنسور قطب‌نما پشتیبانی نمی‌شود");
+    }
+  }, []);
+
+  return { calibrated, error };
+}
 
 export default function CompassStatus() {
   const { calibrated, error } = useCompassCalibration();
@@ -31,13 +58,13 @@ export default function CompassStatus() {
       ) : (
         <>
           <WarningAmberIcon sx={{ mr: 1 }} />
-          {error || "کالیبراسیون سنسور مورد نیاز است."}
-          {/* <Typography
+          {error || "کالیبراسیون سنسور مورد نیاز است"}
+          <Typography
             variant="body2"
             sx={{ display: "inline", ml: 1, fontWeight: "normal" }}
           >
             <span>گوشی را به شکل عدد <b>۸</b> انگلیسی تکان دهید</span>
-          </Typography> */}
+          </Typography>
         </>
       )}
     </Box>

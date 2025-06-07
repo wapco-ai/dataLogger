@@ -1,99 +1,160 @@
+
 import { useState, useRef, useEffect } from "react";
+
+// تابع برای خواندن northAngle - فقط اگر صریحاً ست شده باشه
 const getNorthAngle = () => {
   const value = localStorage.getItem('northAngle');
-  return value ? Number(value) : 0;
+  // ✅ فقط اگر مقدار معتبر باشه و نه صفر
+  return (value && Number(value) !== 0) ? Number(value) : null;
 };
 
-// Helper: compute new position in meters based on heading and distance
+// Helper: محاسبه موقعیت جدید بر اساس جهت و فاصله (متر)
 function moveLatLng({ latitude, longitude }, headingDeg, distanceMeters) {
-  const R = 6378137;
-  const dRad = headingDeg * Math.PI / 180;
-  const newLat = latitude + (distanceMeters * Math.cos(dRad)) / R * (180 / Math.PI);
-  const newLng = longitude +
-    (distanceMeters * Math.sin(dRad)) /
-    (R * Math.cos(latitude * Math.PI / 180)) *
-    (180 / Math.PI);
-  return { latitude: newLat, longitude: newLng };
+  const R = 6378137; // شعاع زمین به متر
+  
+  // تبدیل جهت به رادیان (0° = شمال، 90° = شرق)
+  const bearingRad = headingDeg * Math.PI / 180;
+  
+  // محاسبه موقعیت جدید با در نظر گیری کرویت زمین
+  const deltaLat = (distanceMeters * Math.cos(bearingRad)) / R;
+  const deltaLng = (distanceMeters * Math.sin(bearingRad)) / 
+                   (R * Math.cos(latitude * Math.PI / 180));
+  
+  return {
+    latitude: latitude + deltaLat * (180 / Math.PI),
+    longitude: longitude + deltaLng * (180 / Math.PI)
+  };
 }
 
-// key for localStorage
-const DR_OFFSET_KEY = "dr_heading_offset";
+// فیلتر میانگین‌گیری برای کاهش نویز سنسور
+function smoothValue(newValue, history, maxHistory = 5) {
+  history.push(newValue);
+  if (history.length > maxHistory) history.shift();
+  return history.reduce((sum, val) => sum + val, 0) / history.length;
+}
+
+// تشخیص حالت حرکت
+function detectMovementMode(speed) {
+  if (speed < 0.3) return 'stationary';
+  if (speed < 2) return 'walking';
+  if (speed < 8) return 'running';
+  return 'vehicle';
+}
 
 export function useDualTracking() {
   const [tracking, setTracking] = useState(false);
   const [points, setPoints] = useState([]);
-  const [offset, setOffset] = useState(() => {
-    const saved = localStorage.getItem(DR_OFFSET_KEY);
-    return saved ? Number(saved) : 0;
-  });
 
   const lastDrRef = useRef(null);
   const lastGpsRef = useRef(null);
   const lastTimestampRef = useRef(null);
   const headingRef = useRef(0);
+  const headingHistoryRef = useRef([]);
 
   // Listen to device orientation
   useEffect(() => {
     const handleOrientation = (event) => {
-      if (typeof event.alpha === "number") headingRef.current = event.alpha;
+      if (typeof event.alpha === "number") {
+        // فیلتر نویز سنسور
+        const smoothedHeading = smoothValue(
+          event.alpha, 
+          headingHistoryRef.current, 
+          3
+        );
+        headingRef.current = smoothedHeading;
+      }
     };
+    
     window.addEventListener("deviceorientation", handleOrientation, true);
     return () => window.removeEventListener("deviceorientation", handleOrientation, true);
   }, []);
 
   useEffect(() => {
     if (!tracking) return;
+    
     const watchId = navigator.geolocation.watchPosition(
       (position) => {
         const { latitude, longitude, accuracy, speed, heading } = position.coords;
         const timestamp = position.timestamp;
+        
+        // ذخیره آخرین موقعیت GPS
         lastGpsRef.current = { latitude, longitude, timestamp };
 
         let dr = lastDrRef.current;
+        
         if (!dr) {
+          // نقطه شروع - موقعیت اولیه
           dr = { latitude, longitude, timestamp };
         } else if (lastTimestampRef.current) {
-          const dt = (timestamp - lastTimestampRef.current) / 1000; // seconds
-          const usedSpeed =
-            typeof speed === "number" && speed > 0 ? speed : 1;
-          const moved = usedSpeed * dt; // meters
+          const dt = (timestamp - lastTimestampRef.current) / 1000; // ثانیه
+          
+          // استفاده از سرعت GPS یا سرعت پیش‌فرض
+          let usedSpeed = typeof speed === "number" && speed > 0 ? speed : 0.8;
+          const movementMode = detectMovementMode(usedSpeed);
+          
+          // تنظیم سرعت بر اساس حالت حرکت
+          if (movementMode === 'stationary') {
+            usedSpeed = 0;
+          }
+          
+          const moved = usedSpeed * dt; // متر
 
-          // حرفه‌ای: از offset ثبت‌شده توسط کاربر استفاده کن
-          // دقت کن: ابتدا heading را معکوس می‌کنی (360-alpha) بعد offset را کم می‌کنی
-          // const correctedHeading = (360 - headingRef.current - offset + 360) % 360;
+          // 🔧 محاسبه صحیح جهت تصحیح‌شده
           const northAngle = getNorthAngle();
-          const correctedHeading = (360 - headingRef.current - (northAngle || offset) + 360) % 360;
-          dr = moveLatLng(dr, correctedHeading, moved);
+          let correctedHeading = headingRef.current;
+          
+          if (northAngle !== null) {
+            // ✅ فرمول صحیح برای تصحیح جهت
+            correctedHeading = (headingRef.current - northAngle + 360) % 360;
+          }
+          
+          // ✅ حرکت حتی برای مسافت‌های کوچک‌تر
+          if (moved > 0.05) { // حداقل 5 سانتی‌متر
+            dr = moveLatLng(dr, correctedHeading, moved);
+          }
         }
+        
         lastDrRef.current = dr;
         lastTimestampRef.current = timestamp;
+        
+        // اضافه کردن نقطه جدید
         setPoints((pts) => [
           ...pts,
           {
-            gps: { latitude, longitude, accuracy, speed, heading, timestamp },
-            dr: { latitude: dr.latitude, longitude: dr.longitude, timestamp },
+            gps: { 
+              latitude, 
+              longitude, 
+              accuracy, 
+              speed, 
+              heading, 
+              timestamp 
+            },
+            dr: { 
+              latitude: dr.latitude, 
+              longitude: dr.longitude, 
+              timestamp 
+            },
           },
         ]);
       },
-      (error) => { /* Handle error */ },
-      { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 }
+      (error) => {
+        console.warn("GPS Error:", error);
+      },
+      { 
+        enableHighAccuracy: true, 
+        maximumAge: 0, 
+        timeout: 15000 
+      }
     );
+    
     return () => {
       navigator.geolocation.clearWatch(watchId);
       lastDrRef.current = null;
       lastGpsRef.current = null;
       lastTimestampRef.current = null;
+      headingHistoryRef.current = [];
     };
-  }, [tracking, offset]);
-
-  // تابع کالیبراسیون (set offset)
-  const calibrateHeadingOffset = () => {
-    // فرض: کاربر الان رو به شمال است!
-    const newOffset = headingRef.current;
-    setOffset(newOffset);
-    localStorage.setItem(DR_OFFSET_KEY, String(newOffset));
-    alert(`کالیبراسیون انجام شد!\nOffset: ${Math.round(newOffset)}°`);
-  };
+  }, [tracking]);
 
   const start = () => {
     setPoints([]);
@@ -101,13 +162,18 @@ export function useDualTracking() {
     lastDrRef.current = null;
     lastGpsRef.current = null;
     lastTimestampRef.current = null;
+    headingHistoryRef.current = [];
+    
+    // دریافت موقعیت اولیه
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const { latitude, longitude, accuracy, speed, heading } = position.coords;
         const timestamp = position.timestamp;
+        
         lastGpsRef.current = { latitude, longitude, timestamp };
         lastDrRef.current = { latitude, longitude, timestamp };
         lastTimestampRef.current = timestamp;
+        
         setPoints([{
           gps: { latitude, longitude, accuracy, speed, heading, timestamp },
           dr: { latitude, longitude, timestamp }
@@ -117,9 +183,35 @@ export function useDualTracking() {
       { enableHighAccuracy: true }
     );
   };
+  
   const stop = () => {
     setTracking(false);
   };
 
-  return { tracking, points, start, stop, calibrateHeadingOffset, offset };
+  // ✅ تابع کالیبراسیون دستی - ذخیره مقدار معتبر
+  const calibrateHeadingOffset = () => {
+    const currentHeading = headingRef.current;
+    if (currentHeading !== null && currentHeading !== undefined) {
+      localStorage.setItem('northAngle', currentHeading.toString());
+      // ✅ فورس update برای نمایش
+      window.dispatchEvent(new Event('storage'));
+      return currentHeading;
+    }
+    return 0;
+  };
+
+  // دریافت افست فعلی
+  const getOffset = () => {
+    const northAngle = getNorthAngle();
+    return northAngle || 0;
+  };
+
+  return { 
+    tracking, 
+    points, 
+    start, 
+    stop, 
+    calibrateHeadingOffset,
+    offset: getOffset()
+  };
 }
