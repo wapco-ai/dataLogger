@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -12,6 +12,7 @@ import {
   Box,
   Divider
 } from "@mui/material";
+import { groups, subGroups } from "./groupData";
 
 const markerTypes = [
   { value: "checkpoint", label: "نقطه بازرسی" },
@@ -39,10 +40,42 @@ export default function FilterModal({ isOpen, onClose, filterOptions, setFilterO
     });
   };
 
+  const toggleGeometry = (key) => {
+    setFilterOptions(prev => ({
+      ...prev,
+      geometry: { ...prev.geometry, [key]: !prev.geometry[key] }
+    }));
+  };
+
+  const availableSubGroups = useMemo(() => {
+    if (!filterOptions.groups || filterOptions.groups.length === 0) return [];
+    return filterOptions.groups.flatMap(g => subGroups[g] || []);
+  }, [filterOptions.groups]);
+
   return (
     <Dialog open={isOpen} onClose={onClose} maxWidth="xs" fullWidth dir="rtl">
       <DialogTitle sx={{ fontWeight: "bold", textAlign: "center" }}>فیلترسازی</DialogTitle>
       <DialogContent>
+        <Box sx={{ mb: 2 }}>
+          <Typography variant="subtitle1" sx={{ fontWeight: "bold", mb: 1 }}>
+            لایه‌ها
+          </Typography>
+          <FormGroup row>
+            <FormControlLabel
+              control={<Checkbox checked={filterOptions.geometry.markers} onChange={() => toggleGeometry('markers')} />}
+              label="Markers"
+            />
+            <FormControlLabel
+              control={<Checkbox checked={filterOptions.geometry.paths} onChange={() => toggleGeometry('paths')} />}
+              label="Paths"
+            />
+            <FormControlLabel
+              control={<Checkbox checked={filterOptions.geometry.polygons} onChange={() => toggleGeometry('polygons')} />}
+              label="Polygons"
+            />
+          </FormGroup>
+        </Box>
+
         <Box sx={{ mb: 2 }}>
           <Typography variant="subtitle1" sx={{ fontWeight: "bold", mb: 1 }}>
             نوع نشانگر
@@ -82,6 +115,45 @@ export default function FilterModal({ isOpen, onClose, filterOptions, setFilterO
             ))}
           </FormGroup>
         </Box>
+
+        <Divider sx={{ my: 1 }} />
+        <Box sx={{ mb: 2 }}>
+          <Typography variant="subtitle1" sx={{ fontWeight: "bold", mb: 1 }}>گروه اصلی</Typography>
+          <FormGroup>
+            {groups.map(gr => (
+              <FormControlLabel
+                key={gr.value}
+                control={
+                  <Checkbox
+                    checked={filterOptions.groups.includes(gr.value)}
+                    onChange={() => toggleOption('groups', gr.value)}
+                  />
+                }
+                label={gr.label}
+              />
+            ))}
+          </FormGroup>
+        </Box>
+
+        {availableSubGroups.length > 0 && (
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: "bold", mb: 1 }}>زیرگروه</Typography>
+            <FormGroup>
+              {availableSubGroups.map(sg => (
+                <FormControlLabel
+                  key={sg}
+                  control={
+                    <Checkbox
+                      checked={filterOptions.subGroups.includes(sg)}
+                      onChange={() => toggleOption('subGroups', sg)}
+                    />
+                  }
+                  label={sg}
+                />
+              ))}
+            </FormGroup>
+          </Box>
+        )}
       </DialogContent>
       <DialogActions>
         <Button
