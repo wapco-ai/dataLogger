@@ -188,6 +188,9 @@ const Map = () => {
   const [isTracking, setIsTracking] = useState(false);
   const [showPathModal, setShowPathModal] = useState(false);
   const [selectedItemForDeletion, setSelectedItemForDeletion] = useState(null);
+  const [markerToEdit, setMarkerToEdit] = useState(null);
+  const [pathToEdit, setPathToEdit] = useState(null);
+  const [polygonToEdit, setPolygonToEdit] = useState(null);
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [mapLayer, setMapLayer] = useState('street');
   const trackingTimeoutRef = useRef(null);
@@ -241,9 +244,9 @@ const Map = () => {
 
 
   // Storage hooks
-  const { markers, addMarker, removeMarker } = useMarkerStorage();
-  const { paths, addPath, removePath } = usePathStorage();
-  // const { polygons, addPolygon, removePolygon } = usePolygonStorage();
+  const { markers, addMarker, removeMarker, updateMarker } = useMarkerStorage();
+  const { paths, addPath, removePath, updatePath } = usePathStorage();
+  const { polygons, addPolygon, removePolygon, updatePolygon } = usePolygonStorage();
 
   // Refs for tracking
   const watchIdRef = useRef(null);
@@ -453,6 +456,19 @@ const Map = () => {
     });
   };
 
+  const handleEditSelected = () => {
+    if (!selectedItemForDeletion) return;
+    const { type, item } = selectedItemForDeletion;
+    if (type === 'marker') {
+      setMarkerToEdit(item);
+    } else if (type === 'path') {
+      setPathToEdit(item);
+    } else if (type === 'polygon') {
+      setPolygonToEdit(item);
+    }
+    setSelectedItemForDeletion(null);
+  };
+
   // Delete handler
   const handleDelete = () => {
     if (selectedItemForDeletion) {
@@ -480,6 +496,18 @@ const Map = () => {
     setShowPathModal(false);
     setPathCoordinates([]);
     setGpsMetaPoints([]);
+  };
+
+  const handleUpdateMarker = (id, data) => {
+    updateMarker(id, { position: [data.latitude, data.longitude], data });
+  };
+
+  const handleUpdatePath = (id, data) => {
+    updatePath(id, data);
+  };
+
+  const handleUpdatePolygon = (id, data) => {
+    updatePolygon(id, data);
   };
 
   // Initial geolocation setup
@@ -689,6 +717,14 @@ const Map = () => {
         />
       )}
 
+      {pathToEdit && (
+        <PathModal
+          onClose={() => setPathToEdit(null)}
+          initialData={pathToEdit}
+          onUpdate={handleUpdatePath}
+        />
+      )}
+
       {/* Node Modal */}
       {selectedLocation && (
         <NodeModal
@@ -696,6 +732,15 @@ const Map = () => {
           gpsMeta={lastGpsData}
           onClose={() => setSelectedLocation(null)}
           onSave={handleSaveNode}
+        />
+      )}
+
+      {markerToEdit && (
+        <NodeModal
+          location={{ lat: markerToEdit.position[0], lng: markerToEdit.position[1] }}
+          onClose={() => setMarkerToEdit(null)}
+          initialData={markerToEdit}
+          onUpdate={handleUpdateMarker}
         />
       )}
 
@@ -714,6 +759,7 @@ const Map = () => {
         <DeletionModal
           selectedItem={selectedItemForDeletion}
           onDelete={handleDelete}
+          onEdit={handleEditSelected}
           onClose={() => setSelectedItemForDeletion(null)}
         />
       )}
@@ -821,13 +867,21 @@ const Map = () => {
           />
         ))}
 
-        {showPolygonModal && (
-          <PolygonModal
-            onSave={handleSavePolygon}
-            onClose={() => setShowPolygonModal(false)}
-            polygonCoordinates={polygonPoints}
-          />
-        )}
+      {showPolygonModal && (
+        <PolygonModal
+          onSave={handleSavePolygon}
+          onClose={() => setShowPolygonModal(false)}
+          polygonCoordinates={polygonPoints}
+        />
+      )}
+
+      {polygonToEdit && (
+        <PolygonModal
+          onClose={() => setPolygonToEdit(null)}
+          initialData={polygonToEdit}
+          onUpdate={handleUpdatePolygon}
+        />
+      )}
 
         {/* Manual Marker Overlay & Icon */}
         {manualMarkerMode && (

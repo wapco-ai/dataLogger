@@ -17,17 +17,30 @@ import {
   Button
 } from '@mui/material';
 
-function PathModal({ onSave, onClose, pathCoordinates }) {
-  const [pathData, setPathData] = useState({
-    name: '',
-    description: '',
-    type: '',
-    transportModes: {
-      wheelchair: false,
-      electricVan: false,
-      walking: false,
-    },
-    gender: '',
+function PathModal({ onSave, onClose, pathCoordinates, initialData, onUpdate }) {
+  const isEditMode = Boolean(initialData);
+  const defaultTransport = { wheelchair: false, electricVan: false, walking: false };
+  const [pathData, setPathData] = useState(() => {
+    if (isEditMode) {
+      return {
+        name: initialData.name || '',
+        description: initialData.description || '',
+        type: initialData.type || '',
+        transportModes: {
+          wheelchair: initialData.transportModes?.includes('wheelchair') || false,
+          electricVan: initialData.transportModes?.includes('electricVan') || false,
+          walking: initialData.transportModes?.includes('walking') || false,
+        },
+        gender: initialData.gender || '',
+      };
+    }
+    return {
+      name: '',
+      description: '',
+      type: '',
+      transportModes: defaultTransport,
+      gender: '',
+    };
   });
   const [error, setError] = useState('');
 
@@ -52,19 +65,23 @@ function PathModal({ onSave, onClose, pathCoordinates }) {
     }
     const selectedTransportModes = Object.keys(pathData.transportModes)
       .filter(mode => pathData.transportModes[mode]);
-    onSave({
+    const payload = {
       ...pathData,
       transportModes: selectedTransportModes,
-      coordinates: pathCoordinates,
-      timestamp: new Date().toISOString()
-    });
+      timestamp: new Date().toISOString(),
+    };
+    if (isEditMode && onUpdate) {
+      onUpdate(initialData.id, payload);
+    } else if (onSave) {
+      onSave({ ...payload, coordinates: pathCoordinates });
+    }
     onClose();
   };
 
   return (
     <Dialog open={true} onClose={onClose} maxWidth="sm" dir="rtl" fullWidth>
       <DialogTitle sx={{ textAlign: 'center', fontWeight: 'bold' }}>
-        ایجاد مسیر جدید
+        {isEditMode ? 'ویرایش مسیر' : 'ایجاد مسیر جدید'}
       </DialogTitle>
       <DialogContent dividers>
         {error && (

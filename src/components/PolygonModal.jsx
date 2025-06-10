@@ -48,16 +48,31 @@ const genders = [
     { value: 'family', label: 'خانوادگی' }
 ];
 
-function PolygonModal({ onSave, onClose, polygonCoordinates }) {
-    const [data, setData] = useState({
-        name: '',
-        description: '',
-        group: '',
-        subGroup: '',
-        types: [],
-        services: {},
-        gender: '',
-        restrictedTimes: [],
+function PolygonModal({ onSave, onClose, polygonCoordinates, initialData, onUpdate }) {
+    const isEditMode = Boolean(initialData);
+    const [data, setData] = useState(() => {
+        if (isEditMode) {
+            return {
+                name: initialData.name || '',
+                description: initialData.description || '',
+                group: initialData.group || '',
+                subGroup: initialData.subGroup || '',
+                types: initialData.types || [],
+                services: initialData.services || {},
+                gender: initialData.gender || '',
+                restrictedTimes: initialData.restrictedTimes || [],
+            };
+        }
+        return {
+            name: '',
+            description: '',
+            group: '',
+            subGroup: '',
+            types: [],
+            services: {},
+            gender: '',
+            restrictedTimes: [],
+        };
     });
     const [error, setError] = useState('');
 
@@ -86,18 +101,23 @@ function PolygonModal({ onSave, onClose, polygonCoordinates }) {
         if (!data.subGroup) return setError('زیرگروه را انتخاب کنید');
         if (data.types.length === 0) return setError('حداقل یک نوع محل انتخاب کنید');
 
-        onSave({
+        const payload = {
             ...data,
-            coordinates: polygonCoordinates,
             timestamp: new Date().toISOString()
-        });
+        };
+
+        if (isEditMode && onUpdate) {
+            onUpdate(initialData.id, payload);
+        } else if (onSave) {
+            onSave({ ...payload, coordinates: polygonCoordinates });
+        }
         onClose();
     };
 
     return (
         <Dialog open={true} onClose={onClose} maxWidth="xs" fullWidth dir="rtl">
             <DialogTitle sx={{ textAlign: 'center', fontWeight: 'bold', fontSize: 22, color: "#374151", letterSpacing: 1, bgcolor: "#f6fafd" }}>
-                ایجاد محدوده جدید
+                {isEditMode ? 'ویرایش محدوده' : 'ایجاد محدوده جدید'}
             </DialogTitle>
             <DialogContent dividers sx={{ bgcolor: "#f9fafb" }}>
                 {error && <Typography color="error" mb={2} align="center">{error}</Typography>}

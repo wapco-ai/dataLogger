@@ -70,17 +70,34 @@ function generateUniqueId({ latitude, longitude }, group, subGroup, types, gende
   ].filter(Boolean).join("_");
 }
 
-function NodeModal({ location, gpsMeta, onClose, onSave }) {
-  const [data, setData] = useState({
-    name: '',
-    description: '',
-    group: '',
-    subGroup: '',
-    types: [],
-    services: { wheelchair: false, electricVan: false, walking: false },
-    gender: '',
-    nodeFunction: "",
-    restrictedTimes: [],
+function NodeModal({ location, gpsMeta, onClose, onSave, initialData, onUpdate }) {
+  const isEditMode = Boolean(initialData);
+  const [data, setData] = useState(() => {
+    if (isEditMode) {
+      const d = initialData.data || initialData;
+      return {
+        name: d.name || '',
+        description: d.description || '',
+        group: d.group || '',
+        subGroup: d.subGroup || '',
+        types: d.types || [],
+        services: d.services || { wheelchair: false, electricVan: false, walking: false },
+        gender: d.gender || '',
+        nodeFunction: d.nodeFunction || '',
+        restrictedTimes: d.restrictedTimes || [],
+      };
+    }
+    return {
+      name: '',
+      description: '',
+      group: '',
+      subGroup: '',
+      types: [],
+      services: { wheelchair: false, electricVan: false, walking: false },
+      gender: '',
+      nodeFunction: "",
+      restrictedTimes: [],
+    };
   });
   const [error, setError] = useState('');
 
@@ -107,18 +124,24 @@ function NodeModal({ location, gpsMeta, onClose, onSave }) {
     if (!data.group) return setError('یک گروه انتخاب کنید');
     if (!data.subGroup) return setError('زیرگروه را انتخاب کنید');
     if (data.types.length === 0) return setError('حداقل یک نوع محل انتخاب کنید');
-    const uniqueId = generateUniqueId(
-      { latitude: location.lat, longitude: location.lng },
-      data.group, data.subGroup, data.types, data.gender
-    );
-    onSave({
+
+    const base = {
       ...data,
-      uniqueId,
       latitude: location.lat,
       longitude: location.lng,
+      gpsMeta: gpsMeta || null,
       timestamp: new Date().toISOString(),
-      gpsMeta: gpsMeta || null
-    });
+    };
+
+    if (isEditMode && onUpdate) {
+      onUpdate(initialData.id, base);
+    } else if (onSave) {
+      const uniqueId = generateUniqueId(
+        { latitude: location.lat, longitude: location.lng },
+        data.group, data.subGroup, data.types, data.gender
+      );
+      onSave({ ...base, uniqueId });
+    }
     onClose();
   };
 
@@ -151,7 +174,7 @@ function NodeModal({ location, gpsMeta, onClose, onSave }) {
         borderTopLeftRadius: 32,
         py: 2
       }}>
-        ایجاد گره جدید
+        {isEditMode ? 'ویرایش گره' : 'ایجاد گره جدید'}
       </DialogTitle>
       <DialogContent
         dividers
