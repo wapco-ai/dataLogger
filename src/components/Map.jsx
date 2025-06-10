@@ -149,6 +149,31 @@ const functionIcons = {
   other: '📍'
 };
 
+function getPolygonDefaults(point, polygons) {
+  for (const pg of polygons) {
+    if (pg.coordinates && isPointInPolygon(point, pg.coordinates)) {
+      return { group: pg.group || '', subGroup: pg.subGroup || '' };
+    }
+  }
+  return null;
+}
+
+// Simple point-in-polygon check using ray casting
+function isPointInPolygon(point, polygon) {
+  let x = point.lat;
+  let y = point.lng;
+  let inside = false;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const xi = polygon[i][0], yi = polygon[i][1];
+    const xj = polygon[j][0], yj = polygon[j][1];
+
+    const intersect = ((yi > y) !== (yj > y)) &&
+      (x < ((xj - xi) * (y - yi)) / (yj - yi) + xi);
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+
 
 function getCompositeIcon(group, nodeFunction) {
   const color = groupColors[group] || '#999';
@@ -523,7 +548,8 @@ const Map = () => {
   const finishManualMarker = () => {
     if (centerPos) {
       setManualMarkerMode(false);
-      setSelectedLocation({ lat: centerPos.lat, lng: centerPos.lng });
+      const defaults = getPolygonDefaults({ lat: centerPos.lat, lng: centerPos.lng }, polygons);
+      setSelectedLocation({ lat: centerPos.lat, lng: centerPos.lng, defaults });
     } else {
       setLocationError('لطفاً جایگاه را تنظیم کنید');
     }
@@ -579,9 +605,11 @@ const Map = () => {
     setClickPos(latlng);
 
     // 5. Otherwise, open NodeModal (add marker modal)
+    const defaults = getPolygonDefaults({ lat: latlng.lat, lng: latlng.lng }, polygons);
     setSelectedLocation({
       lat: latlng.lat,
-      lng: latlng.lng
+      lng: latlng.lng,
+      defaults
     });
   };
 
@@ -731,6 +759,7 @@ const Map = () => {
           gpsMeta={lastGpsData}
           onClose={() => setSelectedLocation(null)}
           onSave={handleSaveNode}
+          initialData={selectedLocation.defaults}
         />
       )}
 

@@ -71,9 +71,9 @@ function generateUniqueId({ latitude, longitude }, group, subGroup, types, gende
 }
 
 function NodeModal({ location, gpsMeta, onClose, onSave, initialData, onUpdate }) {
-  const isEditMode = Boolean(initialData);
+  const isEditMode = typeof onUpdate === 'function';
   const [data, setData] = useState(() => {
-    if (isEditMode) {
+    if (initialData) {
       const d = initialData.data || initialData;
       return {
         name: d.name || '',
