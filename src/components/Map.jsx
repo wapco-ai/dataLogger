@@ -244,6 +244,9 @@ const Map = () => {
   };
 
   const [filterOptions, setFilterOptions] = useState({
+    geometry: { markers: true, paths: true, polygons: true },
+    groups: [],
+    subGroups: [],
     markerTypes: [],
     pathTypes: [],
     transportModes: [],
@@ -650,7 +653,7 @@ const Map = () => {
   };
 
   // Filtering logic
-  const filteredMarkers = markers.filter(marker => {
+  const filteredMarkers = filterOptions.geometry.markers ? markers.filter(marker => {
     const markerTypeMatch =
       filterOptions.markerTypes.length === 0 ||
       filterOptions.markerTypes.includes(marker.data?.type);
@@ -665,13 +668,31 @@ const Map = () => {
       filterOptions.gender.length === 0 ||
       filterOptions.gender.includes(marker.data?.gender);
 
-    return markerTypeMatch && transportModesMatch && genderMatch;
-  });
+    const groupMatch =
+      filterOptions.groups.length === 0 ||
+      (marker.data?.group && filterOptions.groups.includes(marker.data.group));
 
-  const filteredPaths = paths.filter(path =>
+    const subGroupMatch =
+      filterOptions.subGroups.length === 0 ||
+      (marker.data?.subGroup && filterOptions.subGroups.includes(marker.data.subGroup));
+
+    return markerTypeMatch && transportModesMatch && genderMatch && groupMatch && subGroupMatch;
+  }) : [];
+
+  const filteredPaths = filterOptions.geometry.paths ? paths.filter(path =>
     filterOptions.pathTypes.length === 0 ||
     filterOptions.pathTypes.includes(path.type)
-  );
+  ) : [];
+
+  const filteredPolygons = filterOptions.geometry.polygons ? polygons.filter(pg => {
+    const groupMatch =
+      filterOptions.groups.length === 0 ||
+      (pg.group && filterOptions.groups.includes(pg.group));
+    const subGroupMatch =
+      filterOptions.subGroups.length === 0 ||
+      (pg.subGroup && filterOptions.subGroups.includes(pg.subGroup));
+    return groupMatch && subGroupMatch;
+  }) : [];
   const handleSaveManualPath = (pathData) => {
     // pathData.coordinates will be an array of {coordinates: [lat,lng], gpsMeta}
     addPath({
@@ -874,7 +895,7 @@ const Map = () => {
           />
         )}
 
-        {polygons.map(polygon => (
+        {filteredPolygons.map(polygon => (
           <Polygon
             key={polygon.id}
             positions={polygon.coordinates}
