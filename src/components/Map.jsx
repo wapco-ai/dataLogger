@@ -203,7 +203,6 @@ const Map = () => {
   const [polygonPoints, setPolygonPoints] = useState([]);
   const [showPolygonModal, setShowPolygonModal] = useState(false);
   const blockNextMapClickRef = useRef(false);
-  const { polygons, addPolygon, removePolygon } = usePolygonStorage();
   const [drPanelOpen, setDrPanelOpen] = useState(false);
 
   const [clickPos, setClickPos] = useState(null);
