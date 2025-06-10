@@ -1,6 +1,7 @@
 import React from 'react'
 import { usePwaUpdate } from "./hooks/usePwaUpdate"; // آدرس رو صحیح بنویس
 import { ThemeProvider } from '@mui/material/styles';
+import { CssBaseline, Box } from '@mui/material';
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import theme from './theme';
 import Map from './components/Map';
@@ -11,23 +12,11 @@ import CompassCalibrationPage from './components/CompassCalibrationPage';
 function App() {
   const { hasUpdate, updateApp } = usePwaUpdate();
   return (
-    <div style={{
-      height: '100vh',
-      width: '100vw',
-      margin: 0,
-      padding: 0,
-      overflow: 'hidden'
-    }}>
-      <ThemeProvider theme={theme}>
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <Box sx={{ height: '100vh', width: '100vw', m: 0, p: 0, overflow: 'hidden' }}>
         {hasUpdate && (
-          <div style={{
-            position: 'fixed',
-            bottom: 70,
-            left: 0,
-            right: 0,
-            zIndex: 9999,
-            textAlign: 'center'
-          }}>
+          <Box sx={{ position: 'fixed', bottom: 70, left: 0, right: 0, zIndex: 9999, textAlign: 'center' }}>
             <button
               onClick={updateApp}
               style={{
@@ -40,10 +29,11 @@ function App() {
                 boxShadow: '0 2px 8px #0002',
                 border: 'none',
                 cursor: 'pointer'
-              }}>
+              }}
+            >
               نسخه جدید آماده است! بروزرسانی
             </button>
-          </div>
+          </Box>
         )}
         <BrowserRouter basename="/dataLogger">
           <Routes>
@@ -52,8 +42,8 @@ function App() {
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
-      </ThemeProvider>
-    </div>
+      </Box>
+    </ThemeProvider>
   )
 }
 
