@@ -66,7 +66,7 @@ const prayerEventLabels = {
 };
 
 
-const DeletionModal = ({ selectedItem, onDelete, onClose }) => {
+const DeletionModal = ({ selectedItem, onDelete, onClose, onEdit }) => {
     const renderTransportModes = (modes) => {
         if (!modes || modes.length === 0) return 'ندارد';
         return modes.map(mode => serviceLabels[mode] || mode).join(', ');
@@ -276,6 +276,23 @@ const DeletionModal = ({ selectedItem, onDelete, onClose }) => {
                 >
                     <span>🗑️</span> بله، حذف شود
                 </button>
+                {onEdit && (
+                <button
+                    onClick={onEdit}
+                    style={{
+                        backgroundColor: '#17a2b8',
+                        color: 'white',
+                        border: 'none',
+                        padding: '10px 20px',
+                        borderRadius: '5px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px'
+                    }}
+                >
+                    <span>✏️</span> ویرایش
+                </button>
+                )}
                 <button
                     onClick={onClose}
                     style={{
