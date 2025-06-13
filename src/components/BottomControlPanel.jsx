@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import {
   AppBar,
@@ -13,7 +14,8 @@ import {
   MenuItem,
   ListItemIcon,
   ListItemText,
-  Slide, Paper
+  Slide, 
+  Paper
 } from '@mui/material';
 import {
   PlayArrow,
@@ -23,11 +25,13 @@ import {
   FileDownload,
   FileUpload,
   Layers,
-  Gesture,
   Map as MapIco,
   Draw as DrawIcon,
   CropFree,
-  Polyline
+  Polyline,
+  Share,
+  Route,
+  Straighten
 } from '@mui/icons-material';
 import RectangleTwoToneIcon from '@mui/icons-material/RectangleTwoTone';
 import DrawOutlinedIcon from '@mui/icons-material/DrawOutlined';
@@ -35,14 +39,14 @@ import FilterAltOutlinedIcon from '@mui/icons-material/FilterAltOutlined';
 import FileUploadOutlinedIcon from '@mui/icons-material/FileUploadOutlined';
 import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
 import DualTrackingTest from "./DualTrackingTest";
-import MapIcon from '@mui/icons-material/Map'; // Use your preferred icon
+import MapIcon from '@mui/icons-material/Map';
 import HomeMaxIcon from '@mui/icons-material/HomeMax';
 import MinimizeIcon from '@mui/icons-material/Minimize';
 import ExploreIcon from '@mui/icons-material/Explore';
 import { useNavigate } from "react-router-dom";
 import DirectionsIcon from '@mui/icons-material/Directions';
-import AssistantDirectionIcon from '@mui/icons-material/AssistantDirection';
 import FollowTheSignsIcon from '@mui/icons-material/FollowTheSigns';
+import BuildIcon from '@mui/icons-material/Build';
 
 export default function BottomControlPanel({
   isTracking,
@@ -54,27 +58,27 @@ export default function BottomControlPanel({
   onFilter,
   onStartManualPath,
   isDrawingPath,
-  onStartPolygon,        // <-- ADD THIS
+  onStartPolygon,
   isDrawingPolygon,
   onPanelToggle
 }) {
   const theme = useTheme();
   const isXs = useMediaQuery(theme.breakpoints.down('sm'));
-  // const isXs = useMediaQuery('(max-width:600px)');
-  const iconSize = isXs ? 'small' : 'medium';
   const [exportAnchorEl, setExportAnchorEl] = useState(null);
+  const [panelMode, setPanelMode] = useState('closed');
+  const isOpen = panelMode !== 'closed';
+  const navigate = useNavigate();
+
   const handleExportClick = (event) => {
     setExportAnchorEl(event.currentTarget);
   };
+
   const handleExportClose = (format) => {
     setExportAnchorEl(null);
     if (format && typeof onExport === 'function') {
       onExport(format);
     }
   };
-  const [showDualTracking, setShowDualTracking] = useState(false);
-  const [panelMode, setPanelMode] = useState('closed'); // 'full' | 'compact' | 'closed'
-  const isOpen = panelMode !== 'closed';
 
   const toggleMode = () => {
     const newMode = panelMode === 'full' ? 'compact' : 'full';
@@ -86,111 +90,230 @@ export default function BottomControlPanel({
     setPanelMode('closed');
     if (onPanelToggle) onPanelToggle(false);
   };
-  const navigate = useNavigate();
+
+  // پنل کنترل اصلی
+  const controlPanelStyle = {
+    position: 'fixed',
+    bottom: 12,
+    left: '50%',
+    transform: 'translateX(-50%)',
+    background: 'rgba(255, 255, 255, 0.9)',
+    backdropFilter: 'blur(15px)',
+    borderRadius: '20px',
+    padding: '6px',
+    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
+    border: '1px solid rgba(255, 255, 255, 0.3)',
+    zIndex: 1300,
+    display: 'flex',
+    alignItems: 'center',
+    gap: '2px',
+    maxWidth: '90vw',
+    overflow: 'hidden'
+  };
+
+  // استایل یکسان برای همه دکمه‌های اصلی
+  const buttonStyle = {
+    width: '44px',
+    height: '44px',
+    borderRadius: '12px',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    transition: 'all 0.2s ease',
+    fontSize: '9px',
+    fontWeight: 500,
+    minWidth: 'unset',
+    padding: '4px',
+    color: '#374151',
+    '&:hover': {
+      transform: 'translateY(-1px)',
+      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+      backgroundColor: 'rgba(0, 0, 0, 0.03)'
+    }
+  };
+
+  const activeButtonStyle = {
+    ...buttonStyle,
+    backgroundColor: theme.palette.success.main,
+    color: 'white',
+    '&:hover': {
+      backgroundColor: theme.palette.success.dark,
+      transform: 'translateY(-1px)',
+      boxShadow: '0 2px 8px rgba(76, 175, 80, 0.3)'
+    }
+  };
+
+  const iconSize = 'small';
 
   return (
-
-    <AppBar position="fixed" color="inherit" sx={{ top: 'auto', bottom: 0 }}>
-      <Toolbar sx={{ justifyContent: 'space-around' }}>
-        <Tooltip title={isTracking ? "توقف ردیابی" : "شروع ردیابی"} arrow>
-          <IconButton color={isTracking ? 'error' : 'success'} onClick={isTracking ? onStopTracking : onStartTracking} size={iconSize}>
-            {isTracking ? <Stop /> : <PlayArrow />}
-          </IconButton>
+    <>
+      {/* پنل کنترل اصلی - بدون دکمه ردیابی */}
+      <Box sx={controlPanelStyle}>
+        {/* نشانگر */}
+        <Tooltip title="نشانگر" arrow placement="top">
+          <Button sx={buttonStyle} onClick={onAddMarker}>
+            <AddLocationAlt fontSize={iconSize} />
+            <Typography variant="caption" sx={{ fontSize: 'inherit', lineHeight: 1 }}>نشانگر</Typography>
+          </Button>
         </Tooltip>
 
-        <Tooltip title="نشانگر" arrow>
-          <IconButton color="primary" onClick={onAddMarker} size={iconSize}>
-            <AddLocationAlt />
-          </IconButton>
-        </Tooltip>
-
-        <Tooltip title="مسیر دستی" arrow>
-          <IconButton color={isDrawingPath ? 'success' : 'primary'} onClick={onStartManualPath} size={iconSize}>
-            <DrawOutlinedIcon />
-          </IconButton>
-        </Tooltip>
-
-        <Tooltip title={isDrawingPolygon ? "در حال ترسیم محدوده" : "محدوده جدید"} arrow>
-          <IconButton
-            color={isDrawingPolygon ? 'success' : 'primary'}
-            onClick={onStartPolygon}
-            size={iconSize}
+        {/* مسیر دستی */}
+        <Tooltip title="مسیر دستی" arrow placement="top">
+          <Button 
+            sx={isDrawingPath ? activeButtonStyle : buttonStyle}
+            onClick={onStartManualPath}
           >
-            <RectangleTwoToneIcon />
-          </IconButton>
+            <DrawOutlinedIcon fontSize={iconSize} />
+            <Typography variant="caption" sx={{ fontSize: 'inherit', lineHeight: 1 }}>مسیر</Typography>
+          </Button>
         </Tooltip>
 
-
-        <Tooltip title="فیلتر" arrow>
-          <IconButton color="secondary" onClick={onFilter} size={iconSize}>
-            <FilterAltOutlinedIcon />
-          </IconButton>
+        {/* محدوده */}
+        <Tooltip title="محدوده جدید" arrow placement="top">
+          <Button 
+            sx={isDrawingPolygon ? activeButtonStyle : buttonStyle}
+            onClick={onStartPolygon}
+          >
+            <RectangleTwoToneIcon fontSize={iconSize} />
+            <Typography variant="caption" sx={{ fontSize: 'inherit', lineHeight: 1 }}>محدوده</Typography>
+          </Button>
         </Tooltip>
 
-        <Tooltip title="خروجی" arrow>
-          <IconButton color="warning" onClick={handleExportClick} size={iconSize}>
-            <FileDownloadOutlinedIcon />
-          </IconButton>
+        {/* فیلتر */}
+        <Tooltip title="فیلتر" arrow placement="top">
+          <Button 
+            sx={buttonStyle} 
+            onClick={onFilter}
+          >
+            <FilterAltOutlinedIcon fontSize={iconSize} />
+            <Typography variant="caption" sx={{ fontSize: 'inherit', lineHeight: 1 }}>فیلتر</Typography>
+          </Button>
         </Tooltip>
 
-        <Menu
-          anchorEl={exportAnchorEl}
-          open={Boolean(exportAnchorEl)}
-          onClose={() => handleExportClose()}
-        >
-          <MenuItem onClick={() => handleExportClose('geojson')}>
-            <ListItemIcon>
-              <MapIcon fontSize="small" />
-            </ListItemIcon>
-            <ListItemText>GeoJSON</ListItemText>
-          </MenuItem>
-          <MenuItem onClick={() => handleExportClose('kml')}>
-            <ListItemIcon>
-              <Layers fontSize="small" />
-            </ListItemIcon>
-            <ListItemText>KML</ListItemText>
-          </MenuItem>
-          <MenuItem onClick={() => handleExportClose('csv')}>
-            <ListItemIcon>
-              <FileDownload fontSize="small" />
-            </ListItemIcon>
-            <ListItemText>CSV</ListItemText>
-          </MenuItem>
-          <MenuItem onClick={() => handleExportClose('json')}>
-            <ListItemIcon>
-              <FileDownload fontSize="small" />
-            </ListItemIcon>
-            <ListItemText>JSON</ListItemText>
-          </MenuItem>
-        </Menu>
-
-        <Tooltip title="ورودی" arrow>
-          <IconButton color="inherit" onClick={onImportClick} size={iconSize}>
-            <FileUploadOutlinedIcon />
-          </IconButton>
+        {/* خروجی */}
+        <Tooltip title="خروجی" arrow placement="top">
+          <Button sx={buttonStyle} onClick={handleExportClick}>
+            <FileDownloadOutlinedIcon fontSize={iconSize} />
+            <Typography variant="caption" sx={{ fontSize: 'inherit', lineHeight: 1 }}>خروجی</Typography>
+          </Button>
         </Tooltip>
 
-        <Tooltip title="تست مسیر GPS/DR" arrow>
-          <IconButton
-            color="info"
+        {/* ورودی */}
+        <Tooltip title="ورودی" arrow placement="top">
+          <Button 
+            sx={buttonStyle} 
+            onClick={() => document.getElementById('importInput').click()}
+          >
+            <FileUploadOutlinedIcon fontSize={iconSize} />
+            <Typography variant="caption" sx={{ fontSize: 'inherit', lineHeight: 1 }}>ورودی</Typography>
+          </Button>
+        </Tooltip>
+
+        {/* تست مسیر */}
+        <Tooltip title="تست مسیر GPS/DR" arrow placement="top">
+          <Button 
+            sx={buttonStyle}
             onClick={() => {
               setPanelMode('full');
               if (onPanelToggle) onPanelToggle(true);
             }}
-            size="large"
           >
-            <FollowTheSignsIcon />
+            <FollowTheSignsIcon fontSize={iconSize} />
+            <Typography variant="caption" sx={{ fontSize: 'inherit', lineHeight: 1 }}>تست</Typography>
+          </Button>
+        </Tooltip>
+      </Box>
+
+      {/* دکمه‌های سمت چپ - جدا از پنل اصلی */}
+      <Box sx={{
+        position: 'fixed',
+        bottom: 80,
+        left: 12,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '8px',
+        zIndex: 1300
+      }}>
+        {/* دکمه ردیابی */}
+        <Tooltip title={isTracking ? "توقف ردیابی" : "شروع ردیابی"} arrow placement="right">
+          <IconButton 
+            sx={{
+              background: 'rgba(255, 255, 255, 0.9)',
+              backdropFilter: 'blur(15px)',
+              borderRadius: '12px',
+              width: '48px',
+              height: '48px',
+              color: isTracking ? theme.palette.error.main : theme.palette.success.main,
+              border: '1px solid rgba(255, 255, 255, 0.3)',
+              '&:hover': {
+                transform: 'translateY(-1px)',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
+              }
+            }}
+            onClick={isTracking ? onStopTracking : onStartTracking}
+          >
+            {isTracking ? <Stop /> : <PlayArrow />}
           </IconButton>
         </Tooltip>
-        <Tooltip title="بررسی کالیبراسیون قطب‌نما" arrow>
-          <IconButton color="info" onClick={() => navigate("/calibration")} size={iconSize}>
+
+        {/* دکمه کالیبراسیون - بالاتر از قبل */}
+        <Tooltip title="کالیبراسیون قطب‌نما" arrow placement="right">
+          <IconButton 
+            sx={{
+              background: 'rgba(255, 255, 255, 0.9)',
+              backdropFilter: 'blur(15px)',
+              borderRadius: '12px',
+              width: '48px',
+              height: '48px',
+              color: theme.palette.info.main,
+              border: '1px solid rgba(255, 255, 255, 0.3)',
+              '&:hover': {
+                transform: 'translateY(-1px)',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
+              }
+            }}
+            onClick={() => navigate("/calibration")}
+          >
             <ExploreIcon />
           </IconButton>
         </Tooltip>
+      </Box>
 
-      </Toolbar>
+      {/* منوی خروجی */}
+      <Menu
+        anchorEl={exportAnchorEl}
+        open={Boolean(exportAnchorEl)}
+        onClose={() => handleExportClose()}
+        PaperProps={{
+          sx: {
+            background: 'rgba(255, 255, 255, 0.95)',
+            backdropFilter: 'blur(15px)',
+            borderRadius: '12px',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)'
+          }
+        }}
+      >
+        <MenuItem onClick={() => handleExportClose('geojson')}>
+          <ListItemIcon><MapIcon fontSize="small" /></ListItemIcon>
+          <ListItemText>GeoJSON</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={() => handleExportClose('kml')}>
+          <ListItemIcon><Layers fontSize="small" /></ListItemIcon>
+          <ListItemText>KML</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={() => handleExportClose('csv')}>
+          <ListItemIcon><FileDownload fontSize="small" /></ListItemIcon>
+          <ListItemText>CSV</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={() => handleExportClose('json')}>
+          <ListItemIcon><FileDownload fontSize="small" /></ListItemIcon>
+          <ListItemText>JSON</ListItemText>
+        </MenuItem>
+      </Menu>
 
-      {/* ======= PLACE THE SLIDE PANEL CODE HERE ======= */}
+      {/* پنل کشویی */}
       <Slide direction="up" in={isOpen} mountOnEnter unmountOnExit>
         <Paper
           elevation={20}
@@ -200,22 +323,23 @@ export default function BottomControlPanel({
             right: 0,
             bottom: 0,
             height: panelMode === 'full' ? '100dvh' : '25vh',
-            borderTopLeftRadius: 24,
-            borderTopRightRadius: 24,
+            borderTopLeftRadius: 20,
+            borderTopRightRadius: 20,
             zIndex: 20000,
-            bgcolor: "background.paper",
-            boxShadow: 16,
+            background: 'rgba(255, 255, 255, 0.98)',
+            backdropFilter: 'blur(20px)',
+            boxShadow: '0 -4px 20px rgba(0, 0, 0, 0.1)',
             display: "flex",
-            flexDirection: "column", // IMPORTANT
+            flexDirection: "column",
             pt: 1,
             pb: 1,
           }}
         >
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", px: 2 }}>
             <Tooltip title="بستن">
-              <IconButton onClick={closePanel}>×</IconButton>
+              <IconButton onClick={closePanel} sx={{ fontSize: '20px' }}>×</IconButton>
             </Tooltip>
-            <Typography sx={{ fontWeight: "bold", fontSize: "16px" }}>
+            <Typography sx={{ fontWeight: "600", fontSize: "14px" }}>
               تست مسیر GPS/DR
             </Typography>
             <Tooltip title={panelMode === 'full' ? "حالت کوچک" : "تمام صفحه"}>
@@ -225,14 +349,11 @@ export default function BottomControlPanel({
             </Tooltip>
           </Box>
 
-          {/* Inner Content */}
           <Box sx={{ flex: 1, minHeight: 0, px: 2, pb: 2 }}>
             <DualTrackingTest mode={panelMode} />
           </Box>
-
         </Paper>
       </Slide>
-
-    </AppBar>
+    </>
   );
 }

@@ -1,380 +1,195 @@
-/* src/styles/index.css */
 
-@import url('https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css');
+/* Modern Map Application Styles */
 
-/* src/index.css */
-* {
-    font-family: 'Vazirmatn', Arial, sans-serif;
-    direction: rtl;
-}
-
-html,
-body {
-    font-size: 16px;
-    line-height: 1.6;
-    text-align: right;
-    -webkit-locale: 'fa';
-    /* locale: 'fa'; */
-    margin: 0;
-    padding: 0;
-    height: 100%;
-    overflow: hidden;
-}
-
+/* CSS Variables for Modern Design */
 :root {
-    --primary-blue: #2196F3;
-    --primary-green: #4CAF50;
-    --secondary-gray: #6c757d;
-    --text-color: #333;
+  --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --glass-bg: rgba(255, 255, 255, 0.85);
+  --glass-border: rgba(255, 255, 255, 0.2);
+  --shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  --shadow-hover: 0 12px 48px rgba(0, 0, 0, 0.2);
+  --border-radius: 16px;
+  --border-radius-large: 24px;
+  --backdrop-blur: blur(20px);
+  --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* Global Reset and Base Styles */
 * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    direction: rtl;
-    font-family: 'Iran Sans', 'Vazir', Arial, sans-serif;
+  /* فونت‌های سیستمی بجای فونت خارجی */
+  font-family: 'Tahoma', 'Arial', 'Helvetica Neue', sans-serif;
+  direction: rtl;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-
-/* Mobile-specific adjustments */
-@media (max-width: 768px) {
-    body {
-        font-size: 14px;
-    }
-}
-
-/* Leaflet Map Specific Styles */
-.leaflet-container {
-    width: '100%';
-    height: '100%';
-    position: 'absolute';
-    margin: 0;
-    padding: 0;
-    direction: 'rtl';
-}
-
-/* Action Buttons */
-.action-button {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    padding: 10px 15px;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: bold;
-    transition: background-color 0.3s ease;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-}
-
-.start-tracking-btn {
-    background-color: var(--primary-green);
-    color: white;
-}
-
-.stop-tracking-btn {
-    background-color: #F44336;
-    color: white;
-}
-
-.add-marker-btn {
-    background-color: var(--primary-blue);
-    color: white;
-}
-
-/* Bottom Action Panel */
-.bottom-action-panel {
-    position: absolute;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 15px;
-    background-color: white;
-    border-radius: 30px;
-    padding: 10px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-    z-index: 1000;
-    max-width: 95%;
-    width: auto;
-}
-
-/* Modal Styles */
-.modal-container {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 90%;
-    max-width: 400px;
-    background-color: white;
-    border-radius: 15px;
-    padding: 20px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-    z-index: 2000;
-}
-
-/* Responsive Typography */
-@media (max-width: 480px) {
-    .action-button {
-        font-size: 12px;
-        padding: 8px 12px;
-    }
-
-    .bottom-action-panel {
-        flex-wrap: wrap;
-        gap: 10px;
-    }
-}
-
-
-/*  */
-
-
-/* Leaflet RTL Adjustments */
-.leaflet-control {
-    direction: ltr;
+html, body {
+  font-size: 16px;
+  line-height: 1.6;
+  text-align: right;
+  -webkit-locale: 'fa';
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
 }
 
 #root {
-    height: 100%;
-    width: 100%;
-}
-
-.app-container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 20px;
-}
-
-header {
-    background-color: #333;
-    color: white;
-    text-align: center;
-    padding: 1rem;
-}
-
-main {
-    display: flex;
-    gap: 20px;
-    margin-top: 20px;
-}
-
-.map-section,
-.sidebar {
-    background-color: white;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    padding: 20px;
-}
-
-.map-section {
-    flex-grow: 2;
-}
-
-.sidebar {
-    flex-grow: 1;
-}
-
-
-/* Global Reset */
-html,
-body {
-    margin: 0;
-    padding: 0;
-    height: 100%;
-    overflow: hidden;
+  height: 100%;
+  width: 100%;
 }
 
 /* Map Container Styles */
 .map-container {
-    position: relative;
-    top: 0;
-    right: 0;
-    width: 100%;
-    height: 100%;
-    direction: rtl;
+  position: relative;
+  top: 0;
+  right: 0;
+  width: 100%;
+  height: 100%;
+  direction: rtl;
+  overflow: hidden;
 }
 
-/* only show the dot when you’re in manual-marker mode */
+/* Manual Marker Mode Styles */
 .map-container.manual-marker-mode::after {
   content: "";
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 8px;
-  height: 8px;
-  margin: -4px 0 0 -4px;   /* center the 8×8 dot */
-  background: black;
+  width: 12px;
+  height: 12px;
+  margin: -6px 0 0 -6px;
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  border: 2px solid white;
   border-radius: 50%;
-  pointer-events: none;    /* so map drags still register */
+  pointer-events: none;
   z-index: 1000;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
+  animation: pulse-marker 2s infinite;
 }
 
-/* Export/Import Button Container */
-.export-import-controls {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    z-index: 1000;
-    display: flex;
-    gap: 10px;
+@keyframes pulse-marker {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.2); opacity: 0.8; }
 }
 
-.export-import-controls button,
-.export-import-controls label {
-    background-color: white;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    padding: 8px 15px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
+/* Leaflet Container Overrides */
+.leaflet-container {
+  width: 100% !important;
+  height: 100% !important;
+  position: absolute !important;
+  margin: 0;
+  padding: 0;
+  direction: rtl;
+  font-family: 'Tahoma', 'Arial', sans-serif !important;
 }
 
-.export-import-controls button:hover,
-.export-import-controls label:hover {
-    background-color: #f0f0f0;
+/* Modern Glass Effect Controls */
+.glass-effect {
+  background: var(--glass-bg);
+  backdrop-filter: var(--backdrop-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow);
+  transition: var(--transition);
 }
 
-
-.error-message {
-    color: red;
-    margin-bottom: 10px;
+.glass-effect:hover {
+  box-shadow: var(--shadow-hover);
+  transform: translateY(-1px);
 }
 
-
-.input-group {
-    margin-bottom: 10px;
+/* Leaflet Control Adjustments */
+.leaflet-control {
+  direction: ltr;
 }
 
-.checkbox-group,
-.radio-group {
-    display: flex;
-    flex-direction: column;
+/* بهبود دکمه‌های zoom */
+.leaflet-control-zoom {
+  background: rgba(255, 255, 255, 0.9) !important;
+  backdrop-filter: blur(15px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+  overflow: hidden !important;
 }
 
-.button-group {
-    display: flex;
-    justify-content: space-between;
+.leaflet-control-zoom a {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  color: #374151 !important;
+  font-size: 18px !important;
+  font-weight: bold !important;
+  line-height: 30px !important;
+  text-align: center !important;
+  text-decoration: none !important;
+  width: 30px !important;
+  height: 30px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.2s ease !important;
 }
 
-.save-button {
-    background-color: green;
-    color: white;
-    border: none;
-    padding: 10px;
-    border-radius: 5px;
+.leaflet-control-zoom a:hover {
+  background: rgba(0, 0, 0, 0.05) !important;
+  color: #1976d2 !important;
+  transform: scale(1.1) !important;
 }
 
-.cancel-button {
-    background-color: red;
-    color: white;
-    border: none;
-    padding: 10px;
-    border-radius: 5px;
+.leaflet-control-zoom a:first-child {
+  border-top-left-radius: 11px !important;
+  border-top-right-radius: 11px !important;
 }
 
-.map-container {
-    width: '100vw';
-    height: '100vh';
-    margin: 0;
-    padding: 0;
-    position: 'absolute';
-    top: 0;
-    left: 0;
-    overflow: 'hidden';
+.leaflet-control-zoom a:last-child {
+  border-bottom-left-radius: 11px !important;
+  border-bottom-right-radius: 11px !important;
+  border-top: 1px solid rgba(0, 0, 0, 0.1) !important;
 }
 
-.layer-selector {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  background: white;
-  padding: 10px;
-  border-radius: 5px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
-  z-index: 1000;
+/* حذف text decoration و بهبود فونت */
+.leaflet-control-zoom a.leaflet-control-zoom-in,
+.leaflet-control-zoom a.leaflet-control-zoom-out {
+  font-family: 'Arial', sans-serif !important;
 }
 
-.layer-select {
-  margin-top: 5px;
-  padding: 5px;
+/* تنظیم position دکمه‌های zoom */
+/* .leaflet-top.leaflet-left {
+  top: 80px !important;
+  left: 10px !important;
+} */
+
+/* Custom Marker Icons */
+.custom-group-icon {
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.25));
+  transition: var(--transition);
 }
 
-.layer-selector {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  background: rgba(255, 255, 255, 0.8);
-  padding: 10px;
-  border-radius: 5px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
-  z-index: 1000;
+.custom-group-icon:hover {
+  transform: scale(1.1);
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3));
 }
 
-.layer-select {
-  margin-top: 5px;
-  padding: 5px;
-  border-radius: 4px;
-  border: 1px solid #ccc;
-}
-
-.button-group {
+.category-marker-icon > div {
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
   display: flex;
-  justify-content: space-between;
-}
-
-.save-button, .cancel-button {
-  padding: 10px 15px;
-  border: none;
-  cursor: pointer;
-  border-radius: 5px;
-  transition: background-color 0.3s;
-}
-
-.save-button {
-  background-color: green;
+  align-items: center;
+  justify-content: center;
   color: white;
+  font-size: 18px;
+  font-weight: bold;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  border: 2px solid white;
+  transition: var(--transition);
 }
 
-.save-button:hover {
-  background-color: darkgreen;
-}
-
-.cancel-button {
-  background-color: red;
-  color: white;
-}
-
-.cancel-button:hover {
-  background-color: darkred;
-}
-
-
-.error-message {
-  color: red;
-  margin-bottom: 10px;
-}
-
-.input-group {
-  margin-bottom: 15px;
-}
-
-.checkbox-group, .radio-group {
-  display: flex;
-  flex-direction: column;
-}
-
-h2 {
-  text-align: center;
-}
-
+/* Center Marker Icon */
 .center-marker-icon {
   pointer-events: none;
   z-index: 1000;
@@ -383,36 +198,267 @@ h2 {
 .center-pin {
   font-size: 24px;
   line-height: 1;
-  text-shadow: 0 1px 1px rgba(0,0,0,0.3);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
 }
 
-/* .leaflet-marker-icon.center-marker-icon {
-  transform-origin: bottom center !important;
-  transform: translate(-50%, -100%) !important;
-} */
 .leaflet-div-icon.center-marker-icon {
-  border: 1px dashed red !important;
+  border: 2px dashed #ef4444 !important;
+  background: rgba(255, 255, 255, 0.9) !important;
+  border-radius: 50% !important;
 }
 
-
-.category-marker-icon > div {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-size: 16px;
-  font-weight: bold;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-}
-
+/* Interactive Elements */
 .leaflet-interactive {
-  /* Leaflet’s SVG circles get this class */
-  filter: drop-shadow(0 0 4px rgba(33, 150, 243, 0.7));
+  filter: drop-shadow(0 2px 8px rgba(33, 150, 243, 0.4));
+  transition: var(--transition);
 }
 
+.leaflet-interactive:hover {
+  filter: drop-shadow(0 4px 12px rgba(33, 150, 243, 0.6));
+}
+
+/* Modern Button Styles */
+.modern-btn {
+  background: var(--glass-bg);
+  backdrop-filter: var(--backdrop-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--border-radius);
+  padding: 12px 24px;
+  color: #374151;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+  box-shadow: var(--shadow);
+}
+
+.modern-btn:hover {
+  background: rgba(255, 255, 255, 0.95);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-hover);
+}
+
+.modern-btn-primary {
+  background: var(--primary-gradient);
+  color: white;
+  border: none;
+}
+
+.modern-btn-primary:hover {
+  background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+  box-shadow: 0 8px 32px rgba(102, 126, 234, 0.4);
+}
+
+/* Modal and Dialog Styles */
+.modern-modal {
+  background: var(--glass-bg);
+  backdrop-filter: var(--backdrop-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--border-radius-large);
+  box-shadow: var(--shadow);
+  padding: 24px;
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow: auto;
+}
+
+/* Form Elements */
+.modern-input {
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 14px;
+  transition: var(--transition);
+}
+
+.modern-input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  background: rgba(255, 255, 255, 0.9);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  body {
+    font-size: 14px;
+  }
+  
+  .glass-effect {
+    backdrop-filter: blur(15px);
+  }
+  
+  :root {
+    --border-radius: 12px;
+    --border-radius-large: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  body {
+    font-size: 13px;
+  }
+  
+  :root {
+    --border-radius: 10px;
+    --border-radius-large: 16px;
+  }
+}
+
+/* Animation Classes */
+@keyframes slideUp {
+  from {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes compass-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Utility Classes */
+.floating-panel {
+  animation: slideUp 0.3s ease-out;
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Hide elements on smaller screens */
 .dual-map-container .leaflet-control-rotate {
   display: none !important;
+}
+
+/* Error and Status Messages */
+.error-message {
+  color: #ef4444;
+  background: rgba(254, 226, 226, 0.8);
+  border: 1px solid rgba(248, 113, 113, 0.3);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+
+.success-message {
+  color: #10b981;
+  background: rgba(209, 250, 229, 0.8);
+  border: 1px solid rgba(52, 211, 153, 0.3);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+
+/* Tooltip Styles */
+.tooltip-modern {
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(10px);
+}
+
+/* Loading States */
+.loading-spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid rgba(102, 126, 234, 0.2);
+  border-top: 2px solid #667eea;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  :root {
+    --glass-bg: rgba(255, 255, 255, 0.95);
+    --glass-border: rgba(0, 0, 0, 0.3);
+    --shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  }
+}
+
+
+/* اضافه کردن به index.css برای قطب‌نما در موبایل */
+
+/* تضمین نمایش قطب‌نما در تمام دستگاه‌ها */
+.mobile-compass {
+  position: fixed !important;
+  left: 12px !important;
+  bottom: 192px !important;
+  z-index: 1200 !important;
+  width: 48px !important;
+  height: 48px !important;
+  background: rgba(255, 255, 255, 0.95) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15) !important;
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  backdrop-filter: blur(15px) !important;
+}
+
+/* موبایل‌های کوچک */
+@media (max-height: 600px) {
+  .mobile-compass {
+    bottom: 160px !important;
+  }
+}
+
+@media (max-height: 500px) {
+  .mobile-compass {
+    bottom: 140px !important;
+  }
+}
+
+@media (max-height: 400px) {
+  .mobile-compass {
+    bottom: 120px !important;
+    width: 44px !important;
+    height: 44px !important;
+  }
+}
+
+/* گوشی‌های عریض */
+@media (max-width: 480px) {
+  .mobile-compass {
+    left: 12px !important;
+  }
+}
+
+/* تضمین نمایش در landscape mode */
+@media (orientation: landscape) and (max-height: 500px) {
+  .mobile-compass {
+    bottom: 80px !important;
+    left: 8px !important;
+  }
 }

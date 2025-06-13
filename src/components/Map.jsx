@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   MapContainer,
@@ -43,12 +44,158 @@ import {
 const centerIcon = L.divIcon({
   className: 'center-marker-icon',
   html: '<div class="center-pin">📍</div>',
-  iconSize: [20, 26],   // ← width 24, height ~30
-  iconAnchor: [10, 26],   // ← bottom-center = 12px across, 30px down
+  iconSize: [20, 26],
+  iconAnchor: [10, 26],
   popupAnchor: [0, -26]
 });
 
+// Component ساده برای تشخیص زوم و نمایش لیبل‌ها
+function SimpleMapLabels({ markers, polygons }) {
+  const map = useMap();
+  const [currentZoom, setCurrentZoom] = useState(map.getZoom());
+  
+  useMapEvents({
+    zoomend: () => {
+      const newZoom = map.getZoom();
+      setCurrentZoom(newZoom);
+      // console.log('Zoom changed to:', newZoom, 'Markers count:', markers.length, 'Polygons count:', polygons.length);
+    }
+  });
 
+  // فقط در زوم 17+ لیبل نمایش داده شود
+  const shouldShowLabels = currentZoom >= 17;
+  
+  // console.log('Rendering labels:', shouldShowLabels, 'Current zoom:', currentZoom);
+
+  return (
+    <>
+      {/* نمایش زوم برای دیباگ */}
+      {/* <div style={{
+        position: 'fixed',
+        top: '60px',
+        left: '10px',
+        background: 'rgba(0, 0, 0, 0.8)',
+        color: 'white',
+        padding: '8px 12px',
+        borderRadius: '6px',
+        fontSize: '14px',
+        zIndex: 1500,
+        pointerEvents: 'none',
+        fontFamily: 'monospace'
+      }}>
+        <div>Zoom: {currentZoom}</div>
+        <div>Show Labels: {shouldShowLabels ? 'YES' : 'NO'}</div>
+        <div>Markers: {markers.length}</div>
+        <div>Polygons: {polygons.length}</div>
+      </div> */}
+
+      {/* لیبل‌های مارکرها */}
+      {shouldShowLabels && markers.length > 0 && markers.map((marker, index) => {
+        // console.log('Creating marker label:', marker.id, marker.data?.name);
+        return (
+          <Marker
+            key={`marker-label-${marker.id}-${index}`}
+            position={marker.position}
+            icon={L.divIcon({
+              className: 'custom-marker-label',
+              html: `
+                <div style="
+                  background: rgba(255, 255, 255, 0.95);
+                  border: 2px solid #4CAF50;
+                  border-radius: 8px;
+                  padding: 3px 6px;
+                  font-size: 10px;
+                  font-weight: bold;
+                  color: #2E7D32;
+                  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+                  white-space: nowrap;
+                  pointer-events: none;
+                  font-family: Arial, sans-serif;
+                  min-width: 30px;
+                  text-align: center;
+                  opacity: 0.8;
+                ">
+                  ${marker.data?.name || `نقطه ${index + 1}`}
+                </div>
+              `,
+              iconSize: [100, 30],
+              iconAnchor: [50, -20] // بالای مارکر
+            })}
+          />
+        );
+      })}
+      
+      {/* لیبل‌های پولیگون‌ها */}
+      {shouldShowLabels && polygons.length > 0 && polygons.map((polygon, index) => {
+        try {
+          // console.log('Creating polygon label:', polygon.id, polygon.name);
+          // محاسبه مرکز پولیگون
+          const bounds = L.polygon(polygon.coordinates).getBounds();
+          const center = bounds.getCenter();
+          
+          return (
+            <Marker
+              key={`polygon-label-${polygon.id}-${index}`}
+              position={[center.lat, center.lng]}
+              icon={L.divIcon({
+                className: 'custom-polygon-label',
+                html: `
+                  <div style="
+                    background: rgba(242, 237, 243, 0.95);
+                    border: 2px solid rgba(156, 39, 176, 0.8);
+                    border-radius: 12px;
+                    padding: 3px 4px;
+                    font-size: 10px;
+                    font-weight: bold;
+                    color: black;
+                    box-shadow: 0 2px 12px rgba(156, 39, 176, 0.4);
+                    white-space: nowrap;
+                    pointer-events: none;
+                    text-align: center;
+                    font-family: Arial, sans-serif;
+                    min-width: 40px;
+                    opacity: 0.8;
+                  ">
+                    ${polygon.name || `محدوده ${index + 1}`}
+                  </div>
+                `,
+                iconSize: [120, 32],
+                iconAnchor: [60, 16] // وسط
+              })}
+            />
+          );
+        } catch (error) {
+          console.error('Error creating polygon label:', error, polygon);
+          return null;
+        }
+      })}
+      
+      {/* تست لیبل ثابت */}
+      {shouldShowLabels && (
+        <Marker
+          position={[36.2972, 59.6067]} // موقعیت ثابت برای تست
+          icon={L.divIcon({
+            className: 'test-label',
+            html: `
+              <div style="
+                background: red;
+                color: white;
+                padding: 8px;
+                border-radius: 4px;
+                font-weight: bold;
+                pointer-events: none;
+              ">
+                تست لیبل - زوم ${currentZoom}
+              </div>
+            `,
+            iconSize: [120, 30],
+            iconAnchor: [60, 15]
+          })}
+        />
+      )}
+    </>
+  );
+}
 
 function NoPopupMarker({ position, children, ...props }) {
   const markerRef = useRef(null);
@@ -56,9 +203,7 @@ function NoPopupMarker({ position, children, ...props }) {
   useEffect(() => {
     const marker = markerRef.current;
     if (marker) {
-      // Remove the click‐to‐open handler that Leaflet adds when you nest <Popup>
-      marker.off('click');                 // ⇐ removes openPopup listener
-      // (Optionally) leave your own click handler:
+      marker.off('click');
       marker.on('click', () => props.onClick && props.onClick());
     }
   }, [props]);
@@ -69,11 +214,10 @@ function NoPopupMarker({ position, children, ...props }) {
       position={position}
       {...props}
     >
-      <Popup>{children}</Popup>  {/* still in JSX, but won’t open on click */}
+      <Popup>{children}</Popup>
     </Marker>
   );
 }
-
 
 // pick a color for each category
 const categoryColors = {
@@ -87,14 +231,10 @@ const categoryColors = {
 function ManualMarkerOverlay({ onPositionChange }) {
   const map = useMap();
 
-  // 1) Seed the centerPos immediately on mount:
   useEffect(() => {
     onPositionChange(map.getCenter());
-    // we only want to run this once
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 2) Update on subsequent pans/zooms:
   useMapEvents({
     dragend: () => onPositionChange(map.getCenter()),
     zoomend: () => onPositionChange(map.getCenter()),
@@ -174,7 +314,6 @@ function isPointInPolygon(point, polygon) {
   return inside;
 }
 
-
 function getCompositeIcon(group, nodeFunction) {
   const color = groupColors[group] || '#999';
   const icon = functionIcons[nodeFunction] || '📌';
@@ -223,24 +362,20 @@ const Map = () => {
   const [isDrawingPath, setIsDrawingPath] = useState(false);
   const [manualPathPoints, setManualPathPoints] = useState([]);
   const [gpsMetaPoints, setGpsMetaPoints] = useState([]);
-  const [modalMode, setModalMode] = useState(null); // 'gps' or 'manual'
+  const [modalMode, setModalMode] = useState(null);
   const [isDrawingPolygon, setIsDrawingPolygon] = useState(false);
   const [polygonPoints, setPolygonPoints] = useState([]);
   const [showPolygonModal, setShowPolygonModal] = useState(false);
   const blockNextMapClickRef = useRef(false);
   const [drPanelOpen, setDrPanelOpen] = useState(false);
-
   const [clickPos, setClickPos] = useState(null);
-
-
-  // NEW: Manual marker mode
   const [manualMarkerMode, setManualMarkerMode] = useState(false);
   const [centerPos, setCenterPos] = useState(null);
 
   const mapRef = useRef(null);
 
   const handleExport = (format = 'json') => {
-    exportMapData(format); // Make sure this uses the enhanced export function we created earlier
+    exportMapData(format);
   };
 
   const [filterOptions, setFilterOptions] = useState({
@@ -253,22 +388,17 @@ const Map = () => {
     gender: []
   });
 
-
-
-
   const layerLabels = {
     street: 'Street View',
     esri: 'Esri World Imagery',
-    // maptiler: 'MapTiler Satellite',
     eox: 'EOX S2 Cloudless 2020'
   };
+  
   const layers = {
     street: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
     esri: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-    // maptiler: 'https://api.maptiler.com/tiles/satellite/{z}/{x}/{y}.jpg?key=PAu3bNqx2yRLCogX8Zb0',
     eox: "https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2020_3857/default/g/{z}/{y}/{x}.jpg",
   };
-
 
   // Storage hooks
   const { markers, addMarker, removeMarker, updateMarker } = useMarkerStorage();
@@ -326,22 +456,22 @@ const Map = () => {
     );
   }, []);
 
-
   const startManualPath = () => {
     setIsDrawingPath(true);
     setManualPathPoints([]);
     setLocationError(null);
   };
+  
   const finishManualPath = () => {
-    // setIsDrawingPath(false);
     if (manualPathPoints.length > 1) {
-      setIsDrawingPath(false);              // <--- Add this line
+      setIsDrawingPath(false);
       setModalMode('manual');
       setShowPathModal(true);
     } else {
       setLocationError('مسیر بسیار کوتاه است. حداقل دو نقطه نیاز است.');
     }
   };
+  
   const pathCoordinatesRef = useRef(pathCoordinates);
 
   const startDrawingPolygon = () => {
@@ -349,16 +479,15 @@ const Map = () => {
     setPolygonPoints([]);
   };
 
-  // Button to finish polygon:
   const finishPolygon = () => {
     if (polygonPoints.length >= 3) {
-      setIsDrawingPolygon(false);           // <--- Add this line
+      setIsDrawingPolygon(false);
       setShowPolygonModal(true);
     } else {
       alert('حداقل سه نقطه نیاز است.');
     }
   };
-  // On save in modal:
+  
   const handleSavePolygon = (polygonData) => {
     addPolygon(polygonData);
     setShowPolygonModal(false);
@@ -369,17 +498,17 @@ const Map = () => {
   useEffect(() => {
     pathCoordinatesRef.current = pathCoordinates;
   }, [pathCoordinates]);
+
   // Start tracking function
   const startTracking = () => {
     setIsTracking(true);
-    setPathCoordinates([]); // Clear previous coordinates
+    setPathCoordinates([]);
     setLocationError(null);
-    // Clear any existing timeout to avoid stacking
+    
     if (trackingTimeoutRef.current) {
       clearTimeout(trackingTimeoutRef.current);
     }
 
-    // Use a ref + functional update to avoid stale closure for pathCoordinates length check
     trackingTimeoutRef.current = setTimeout(() => {
       setPathCoordinates((currentPathCoords) => {
         if (currentPathCoords.length === 0) {
@@ -389,7 +518,6 @@ const Map = () => {
         return currentPathCoords;
       });
     }, 30000);
-
 
     watchIdRef.current = navigator.geolocation.watchPosition(
       (position) => {
@@ -403,7 +531,7 @@ const Map = () => {
         if (accuracy <= 5000) {
           setUserLocation(newLocation);
           setLocationError(null);
-          // record coords
+          
           setPathCoordinates(prev => {
             if (prev.length === 0) {
               return [...prev, newLocation];
@@ -417,7 +545,6 @@ const Map = () => {
             return isNewPointFarEnough ? [...prev, newLocation] : prev;
           });
 
-          // record full metadata object
           setGpsMetaPoints(prev => [...prev, {
             coords: { latitude, longitude, accuracy, altitude, speed, heading },
             timestamp: position.timestamp
@@ -506,7 +633,7 @@ const Map = () => {
       } else if (type === 'path') {
         removePath(item.id);
       } else if (type === 'polygon') {
-        removePolygon(item.id);   // <--- ADD THIS LINE
+        removePolygon(item.id);
       }
 
       setSelectedItemForDeletion(null);
@@ -517,7 +644,7 @@ const Map = () => {
   const handleSavePath = (pathData) => {
     addPath({
       ...pathData,
-      coordinates: pathCoordinates, // Save GPS-tracked path
+      coordinates: pathCoordinates,
       pointsMeta: gpsMetaPoints
     });
     setShowPathModal(false);
@@ -542,12 +669,12 @@ const Map = () => {
     setupGeolocation();
   }, [setupGeolocation]);
 
-
   // Manual marker controls
   const startManualMarker = () => {
     setManualMarkerMode(true);
     setCenterPos(null);
   };
+  
   const finishManualMarker = () => {
     if (centerPos) {
       setManualMarkerMode(false);
@@ -557,6 +684,7 @@ const Map = () => {
       setLocationError('لطفاً جایگاه را تنظیم کنید');
     }
   };
+  
   const cancelManualMarker = () => {
     setManualMarkerMode(false);
     setCenterPos(null);
@@ -564,33 +692,32 @@ const Map = () => {
 
   // Map click handler
   const handleMapClick = (latlng) => {
-
     // ignore clicks during manual marker mode
     if (manualMarkerMode) return;
 
-    // 1. Block the next click after a feature/modal click
+    // Block the next click after a feature/modal click
     if (blockNextMapClickRef.current) {
       blockNextMapClickRef.current = false;
       return;
     }
 
-    // 2. If any modal is open, do nothing
+    // If any modal is open, do nothing
     if (
       selectedItemForDeletion ||
       showPolygonModal ||
       showPathModal ||
-      selectedLocation // <-- prevents opening multiple NodeModals!
+      selectedLocation
     ) {
       return;
     }
 
-    // 3. Add point if in polygon drawing mode
+    // Add point if in polygon drawing mode
     if (isDrawingPolygon) {
       setPolygonPoints(prev => [...prev, [latlng.lat, latlng.lng]]);
       return;
     }
 
-    // 4. Add point if in manual path drawing mode
+    // Add point if in manual path drawing mode
     if (isDrawingPath) {
       setManualPathPoints(prev => [
         ...prev,
@@ -607,7 +734,7 @@ const Map = () => {
 
     setClickPos(latlng);
 
-    // 5. Otherwise, open NodeModal (add marker modal)
+    // Otherwise, open NodeModal (add marker modal)
     const defaults = getPolygonDefaults({ lat: latlng.lat, lng: latlng.lng }, polygons);
     setSelectedLocation({
       lat: latlng.lat,
@@ -615,8 +742,6 @@ const Map = () => {
       defaults
     });
   };
-
-
 
   // Node Modal Handler
   const handleSaveNode = (nodeData) => {
@@ -637,12 +762,10 @@ const Map = () => {
     if (file) {
       importMapData(file)
         .then(({ markers: newMarkers, paths: newPaths, polygons: newPolygons }) => {
-          // 1) clear current state
           markers.forEach(m => removeMarker(m.id));
           paths.forEach(p => removePath(p.id));
           polygons.forEach(pg => removePolygon(pg.id));
 
-          // 2) add merged data back
           newMarkers.forEach(m => addMarker(m));
           newPaths.forEach(p => addPath(p));
           newPolygons && newPolygons.forEach(pg => addPolygon(pg));
@@ -693,16 +816,17 @@ const Map = () => {
       (pg.subGroup && filterOptions.subGroups.includes(pg.subGroup));
     return groupMatch && subGroupMatch;
   }) : [];
+  
   const handleSaveManualPath = (pathData) => {
-    // pathData.coordinates will be an array of {coordinates: [lat,lng], gpsMeta}
     addPath({
       ...pathData,
-      coordinates: manualPathPoints, // store as objects with gpsMeta
+      coordinates: manualPathPoints,
     });
     setShowPathModal(false);
     setManualPathPoints([]);
-    setIsDrawingPath(false); // end drawing mode
+    setIsDrawingPath(false);
   };
+  
   // Path color helper function
   const getPathColor = (pathType) => {
     switch (pathType) {
@@ -814,16 +938,15 @@ const Map = () => {
       )}
 
       <MapContainer
-        // center={[36.2972, 59.6067]} // فقط یکبار
         zoom={zoom}
         scrollWheelZoom={true}
         tap={true}
         style={{
-          width: '100%',     // 100% of parent container
-          height: '100%',    // 100% of parent container
+          width: '100%',
+          height: '100%',
           position: 'absolute',
-          margin: 0,         // No margins
-          padding: 0,        // No padding
+          margin: 0,
+          padding: 0,
           direction: 'rtl'
         }}
         whenCreated={mapInstance => {
@@ -833,6 +956,7 @@ const Map = () => {
         {/* Recenter Map */}
         <RecenterMap position={position} zoom={zoom} />
         <MapRotationControl mapRef={mapRef} />
+        
         {/* Map Click Handler */}
         <MapClickHandler onMapClick={handleMapClick} manualMode={manualMarkerMode} />
 
@@ -853,14 +977,13 @@ const Map = () => {
               fillOpacity={0.1}
               weight={2}
             />
-            {/* crisp, pixel-sized GPS dot */}
             <CircleMarker
               center={userLocation}
-              radius={6}  // 6px radius
+              radius={6}
               pathOptions={{
-                color: '#e6f2ff',      // stroke
+                color: '#e6f2ff',
                 weight: 2,
-                fillColor: '#1976d2',  // light blue fill
+                fillColor: '#1976d2',
                 fillOpacity: 1
               }}
             />
@@ -874,7 +997,6 @@ const Map = () => {
             color="blue"
             weight={5}
             opacity={isTracking ? 0.7 : 1}
-          // dashArray={isTracking ? "1, 1" : null} // Dashed line while tracking
           />
         )}
 
@@ -902,7 +1024,6 @@ const Map = () => {
             pathOptions={{ color: 'purple', fillOpacity: 0.2 }}
             eventHandlers={{
               click: (e) => {
-                // Stop event propagation to prevent map click handler
                 if (e.originalEvent && e.originalEvent.stopPropagation) {
                   e.originalEvent.stopPropagation();
                 }
@@ -916,31 +1037,33 @@ const Map = () => {
           />
         ))}
 
-      {showPolygonModal && (
-        <PolygonModal
-          onSave={handleSavePolygon}
-          onClose={() => setShowPolygonModal(false)}
-          polygonCoordinates={polygonPoints}
-        />
-      )}
+        {showPolygonModal && (
+          <PolygonModal
+            onSave={handleSavePolygon}
+            onClose={() => setShowPolygonModal(false)}
+            polygonCoordinates={polygonPoints}
+          />
+        )}
 
-      {polygonToEdit && (
-        <PolygonModal
-          onClose={() => setPolygonToEdit(null)}
-          initialData={polygonToEdit}
-          onUpdate={handleUpdatePolygon}
-        />
-      )}
+        {polygonToEdit && (
+          <PolygonModal
+            onClose={() => setPolygonToEdit(null)}
+            initialData={polygonToEdit}
+            onUpdate={handleUpdatePolygon}
+          />
+        )}
 
         {/* Manual Marker Overlay & Icon */}
         {manualMarkerMode && (
-          <>  <ManualMarkerOverlay onPositionChange={setCenterPos} />
+          <>
+            <ManualMarkerOverlay onPositionChange={setCenterPos} />
             {centerPos && (
               <Marker
                 position={[centerPos.lat, centerPos.lng]}
                 icon={centerIcon}
               />
-            )} </>
+            )}
+          </>
         )}
 
         {/* show a little black dot at the clicked spot */}
@@ -1003,15 +1126,22 @@ const Map = () => {
           );
         })}
 
+        {/* لیبل‌ها با Debug Panel */}
+        <SimpleMapLabels 
+          markers={filteredMarkers} 
+          polygons={filteredPolygons} 
+        />
+
       </MapContainer>
+      
       {!drPanelOpen && <NorthAngleArrow />}
+      
       <BottomControlPanel
         isTracking={isTracking}
         onStartTracking={startTracking}
         onStopTracking={stopTracking}
-        // onAddMarker={() => setSelectedLocation({ lat: position[0], lng: position[1] })}
         onAddMarker={startManualMarker}
-        onExport={handleExport} // Add this line
+        onExport={handleExport}
         onImportClick={() => document.getElementById('importInput').click()}
         onFilter={() => setShowFilterModal(true)}
         onStartManualPath={startManualPath}
@@ -1023,14 +1153,15 @@ const Map = () => {
 
       {/* Manual Marker Finish / Cancel Buttons */}
       {manualMarkerMode && (
-        <> <Button
-          onClick={finishManualMarker}
-          variant="contained"
-          color="success"
-          sx={{ position: 'fixed', bottom: 80, right: 20, zIndex: 1300 }}
-        >
-          پایان نشانگر و ذخیره
-        </Button>
+        <>
+          <Button
+            onClick={finishManualMarker}
+            variant="contained"
+            color="success"
+            sx={{ position: 'fixed', bottom: 80, right: 20, zIndex: 1300 }}
+          >
+            پایان نشانگر و ذخیره
+          </Button>
           <Button
             onClick={cancelManualMarker}
             variant="contained"
@@ -1038,7 +1169,8 @@ const Map = () => {
             sx={{ position: 'fixed', bottom: 80, right: 160, zIndex: 1300 }}
           >
             لغو
-          </Button> </>
+          </Button>
+        </>
       )}
 
       {isDrawingPath && (
@@ -1051,7 +1183,6 @@ const Map = () => {
           پایان مسیر و ذخیره
         </Button>
       )}
-
 
       {isDrawingPolygon && polygonPoints.length >= 3 && (
         <Button
@@ -1067,12 +1198,10 @@ const Map = () => {
       <input
         id="importInput"
         type="file"
-        accept=".json"
+        accept=".json,.geojson,.kml"
         onChange={handleImportData}
         style={{ display: 'none' }}
       />
-
-
     </div>
   )
 }

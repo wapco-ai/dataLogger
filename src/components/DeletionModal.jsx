@@ -125,7 +125,8 @@ const DeletionModal = ({ selectedItem, onDelete, onClose, onEdit }) => {
             maxWidth: '400px',
             maxHeight: '80vh',
             overflowY: 'auto',
-            zIndex: 1000
+            zIndex: 1400,
+            fontSize: "13px"
         }}>
             <h2 style={{
                 marginBottom: '15px',
@@ -267,11 +268,11 @@ const DeletionModal = ({ selectedItem, onDelete, onClose, onEdit }) => {
                         backgroundColor: '#dc3545',
                         color: 'white',
                         border: 'none',
-                        padding: '10px 20px',
+                        padding: '10px 10px',
                         borderRadius: '5px',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '10px'
+                        gap: '5px'
                     }}
                 >
                     <span>🗑️</span> بله، حذف شود
@@ -283,11 +284,11 @@ const DeletionModal = ({ selectedItem, onDelete, onClose, onEdit }) => {
                         backgroundColor: '#17a2b8',
                         color: 'white',
                         border: 'none',
-                        padding: '10px 20px',
+                        padding: '10px 10px',
                         borderRadius: '5px',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '10px'
+                        gap: '5px'
                     }}
                 >
                     <span>✏️</span> ویرایش
@@ -299,11 +300,11 @@ const DeletionModal = ({ selectedItem, onDelete, onClose, onEdit }) => {
                         backgroundColor: '#6c757d',
                         color: 'white',
                         border: 'none',
-                        padding: '10px 20px',
+                        padding: '10px 10px',
                         borderRadius: '5px',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '10px'
+                        gap: '5px'
                     }}
                 >
                     <span>✖</span> انصراف

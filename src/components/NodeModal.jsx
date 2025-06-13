@@ -138,7 +138,8 @@ function NodeModal({ location, gpsMeta, onClose, onSave, initialData, onUpdate }
           width: '98vw',
           bgcolor: "#ffffffee",
           boxShadow: "0 8px 40px #0002",
-          border: "1px solid #e0e5ec"
+          border: "1px solid #e0e5ec",
+          zIndex: "1000"
         }
       }}
     >
