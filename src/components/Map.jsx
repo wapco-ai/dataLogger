@@ -292,6 +292,7 @@ const functionIcons = {
   ramp: '♿',
   stairs: '🪜',
   service: '🚾',
+  qrcode: '🔳',
   other: '📍'
 };
 
