@@ -31,16 +31,17 @@ function PolygonModal({ onSave, onClose, polygonCoordinates, initialData, onUpda
     const isEditMode = Boolean(initialData);
     const [data, setData] = useState(() => {
         if (isEditMode) {
+            const d = initialData.data || initialData;
             return {
-                name: initialData.name || '',
-                description: initialData.description || '',
-                group: initialData.group || '',
-                subGroup: initialData.subGroup || '',
-                subGroupValue: initialData.subGroupValue || '',
-                types: initialData.types || [],
-                services: initialData.services || {},
-                gender: initialData.gender || '',
-                restrictedTimes: initialData.restrictedTimes || [],
+                name: d.name || '',
+                description: d.description || '',
+                group: d.group || '',
+                subGroup: d.subGroup || '',
+                subGroupValue: d.subGroupValue || '',
+                types: d.types || [],
+                services: d.services || {},
+                gender: d.gender || '',
+                restrictedTimes: d.restrictedTimes || [],
             };
         }
         return {
@@ -83,7 +84,7 @@ function PolygonModal({ onSave, onClose, polygonCoordinates, initialData, onUpda
         if (data.types.length === 0) return setError('حداقل یک نوع محل انتخاب کنید');
 
         const payload = {
-            ...data,
+            data,
             timestamp: new Date().toISOString()
         };
 

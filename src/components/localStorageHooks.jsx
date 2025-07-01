@@ -108,7 +108,11 @@ const usePolygonStorage = () => {
   const addPolygon = (newPolygon) => {
     setPolygons(prev => [
       ...prev,
-      { ...newPolygon, id: crypto.randomUUID(), timestamp: new Date().toISOString() }
+      {
+        ...newPolygon,
+        id: crypto.randomUUID(),
+        timestamp: newPolygon.timestamp || new Date().toISOString()
+      }
     ]);
   };
   const removePolygon = (polygonId) => {
@@ -188,15 +192,7 @@ const exportMapData = (format = 'geojson') => {
             },
             properties: {
               ...(polygon.data || {}),
-              name: polygon.name,
-              description: polygon.description,
-              group: polygon.group || '',
-              subGroup: polygon.subGroup || '',
-              types: polygon.types || '',
-              gender: polygon.gender || '',
-              transportModes: polygon.services || [],
-              timestamp: polygon.timestamp,
-              restrictedTimes: polygon.restrictedTimes || {},
+              timestamp: polygon.timestamp
             }
           }))
         ]
@@ -263,7 +259,7 @@ const exportMapData = (format = 'geojson') => {
       }).join('');
 
       const polygonsKML = polygons.map(polygon => {
-        const tmodes = transportModesToString(polygon.transportModes);
+        const tmodes = transportModesToString(polygon.data?.transportModes || polygon.data?.services);
         // KML expects: coordinates="lng,lat,0 lng,lat,0 ..."
         // And polygons must be "closed" (first == last point)
         let coords = Array.isArray(polygon.coordinates) ? polygon.coordinates.slice() : [];
@@ -275,13 +271,13 @@ const exportMapData = (format = 'geojson') => {
           .join(' ');
         return `
     <Placemark>
-      <name>${polygon.name || ''}</name>
-      <description>${polygon.description || ''}</description>
+      <name>${polygon.data?.name || ''}</name>
+      <description>${polygon.data?.description || ''}</description>
       <ExtendedData>
-        <Data name="type"><value>${polygon.type || ''}</value></Data>
+        <Data name="type"><value>${polygon.data?.type || ''}</value></Data>
         <Data name="transportModes"><value>${tmodes}</value></Data>
-        <Data name="gender"><value>${polygon.gender || ''}</value></Data>
-        <Data name="restrictedTimes"><value>${polygon.restrictedTimes ? JSON.stringify(polygon.restrictedTimes) : ''}</value></Data>
+        <Data name="gender"><value>${polygon.data?.gender || ''}</value></Data>
+        <Data name="restrictedTimes"><value>${polygon.data?.restrictedTimes ? JSON.stringify(polygon.data.restrictedTimes) : ''}</value></Data>
       </ExtendedData>
       <Polygon>
         <outerBoundaryIs>
@@ -347,14 +343,15 @@ const exportMapData = (format = 'geojson') => {
         // Use the first coordinate for lat/lng (for display purposes)
         const coords = Array.isArray(polygon.coordinates) ? polygon.coordinates : [];
         const [lat, lng] = coords[0] || ['', ''];
+        const data = polygon.data || {};
         return [
           'Polygon',
-          `"${polygon.name || ''}"`,
-          `"${polygon.description || ''}"`,
-          `"${polygon.type || ''}"`,
-          `"${transportModesToString(polygon.transportModes)}"`,
-          `"${polygon.gender || ''}"`,
-          `"${polygon.restrictedTimes ? JSON.stringify(polygon.restrictedTimes) : ''}"`,
+          `"${data.name || ''}"`,
+          `"${data.description || ''}"`,
+          `"${data.type || ''}"`,
+          `"${transportModesToString(data.transportModes || data.services)}"`,
+          `"${data.gender || ''}"`,
+          `"${data.restrictedTimes ? JSON.stringify(data.restrictedTimes) : ''}"`,
           lat,
           lng,
           `"${polygon.timestamp || ''}"`
@@ -492,16 +489,18 @@ const importMapData = (file) => {
             const coords = geometry.coordinates[0].map(([lng, lat]) => [lat, lng]);
             parsedPolygons.push({
               id: crypto.randomUUID(),
-              name: properties.name || '',
-              description: properties.description || '',
-              group: properties.group || '',
-              subGroup: properties.subGroup || '',
-              subGroupValue: properties.subGroupValue || '',
-              types: properties.types || (properties.type ? [properties.type] : []),
-              services: properties.transportModes || properties.services || {},
-              gender: properties.gender || '',
-              restrictedTimes: properties.restrictedTimes || [],
               coordinates: coords,
+              data: {
+                name: properties.name || '',
+                description: properties.description || '',
+                group: properties.group || '',
+                subGroup: properties.subGroup || '',
+                subGroupValue: properties.subGroupValue || '',
+                types: properties.types || (properties.type ? [properties.type] : []),
+                services: properties.transportModes || properties.services || {},
+                gender: properties.gender || '',
+                restrictedTimes: properties.restrictedTimes || []
+              },
               timestamp: properties.timestamp || new Date().toISOString()
             });
           }
