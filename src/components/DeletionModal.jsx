@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import QRCode from 'react-qr-code';
 import L from 'leaflet';
 import {
     Dialog,
@@ -191,6 +192,15 @@ const DeletionModal = ({ selectedItems, onDelete, onClose, onEdit }) => {
                             </ul>
                             : "محدودیتی ثبت نشده است"}
                     </p>
+                    {selectedItem.item.data?.nodeFunction === 'qrcode' &&
+                        selectedItem.item.position && selectedItem.item.position.length === 2 && (
+                        <div style={{ textAlign: 'center', marginTop: 10 }}>
+                            <QRCode
+                                value={`https://wapco-ai.github.io/golden_path/?lat=${selectedItem.item.position[0]}&lng=${selectedItem.item.position[1]}`}
+                                size={128}
+                            />
+                        </div>
+                    )}
                 </div>
             )}
 

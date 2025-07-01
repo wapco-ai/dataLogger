@@ -465,6 +465,7 @@ export const nodeFunctions = [
   { value: 'elevator', label: 'آسانسور' },
   { value: 'escalator', label: 'پله برقی' },
   { value: 'service', label: 'سرویس' },
+  { value: 'qrcode', label: 'محل اسکن QRCode' },
   { value: 'other', label: 'سایر' }
 ];
 
