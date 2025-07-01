@@ -15,7 +15,9 @@ import {
     Checkbox,
     Radio,
     RadioGroup,
-    Button
+    Button,
+    Tabs,
+    Tab
 } from '@mui/material';
 
 // ابتدای فایل DeletionModal.jsx
@@ -66,7 +68,10 @@ const prayerEventLabels = {
 };
 
 
-const DeletionModal = ({ selectedItem, onDelete, onClose, onEdit }) => {
+const DeletionModal = ({ selectedItems, onDelete, onClose, onEdit }) => {
+    const items = Array.isArray(selectedItems) ? selectedItems : [selectedItems];
+    const [tabIndex, setTabIndex] = useState(0);
+    const selectedItem = items[tabIndex];
     const renderTransportModes = (modes) => {
         if (!modes || modes.length === 0) return 'ندارد';
         return modes.map(mode => serviceLabels[mode] || mode).join(', ');
@@ -128,6 +133,19 @@ const DeletionModal = ({ selectedItem, onDelete, onClose, onEdit }) => {
             zIndex: 1400,
             fontSize: "13px"
         }}>
+            {items.length > 1 && (
+                <Tabs
+                    value={tabIndex}
+                    onChange={(e, v) => setTabIndex(v)}
+                    variant="scrollable"
+                    scrollButtons="auto"
+                    sx={{ marginBottom: '10px' }}
+                >
+                    {items.map((it, idx) => (
+                        <Tab key={idx} label={it.item.data?.name || it.item.name || `آیتم ${idx + 1}`} />
+                    ))}
+                </Tabs>
+            )}
             <h2 style={{
                 marginBottom: '15px',
                 textAlign: 'center',
@@ -263,7 +281,7 @@ const DeletionModal = ({ selectedItem, onDelete, onClose, onEdit }) => {
                 marginTop: '15px'
             }}>
                 <button
-                    onClick={onDelete}
+                    onClick={() => onDelete && onDelete(selectedItem)}
                     style={{
                         backgroundColor: '#dc3545',
                         color: 'white',
@@ -279,7 +297,7 @@ const DeletionModal = ({ selectedItem, onDelete, onClose, onEdit }) => {
                 </button>
                 {onEdit && (
                 <button
-                    onClick={onEdit}
+                    onClick={() => onEdit(selectedItem)}
                     style={{
                         backgroundColor: '#17a2b8',
                         color: 'white',
