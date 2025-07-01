@@ -1085,7 +1085,7 @@ const Map = () => {
         {isDrawingPolygon && polygonPoints.length > 1 && (
           <Polygon
             positions={polygonPoints}
-            pathOptions={{ color: 'purple', fillOpacity: 0.2 }}
+            pathOptions={{ color: 'purple', fill: false, fillOpacity: 0 }}
           />
         )}
 
@@ -1093,7 +1093,7 @@ const Map = () => {
           <Polygon
             key={polygon.id}
             positions={polygon.coordinates}
-            pathOptions={{ color: 'purple', fillOpacity: 0.2 }}
+            pathOptions={{ color: 'purple', fill: false, fillOpacity: 0 }}
             eventHandlers={{
               click: (e) => {
                 if (e.originalEvent && e.originalEvent.stopPropagation) {
