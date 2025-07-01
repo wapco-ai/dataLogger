@@ -298,7 +298,11 @@ const functionIcons = {
 function getPolygonDefaults(point, polygons) {
   for (const pg of polygons) {
     if (pg.coordinates && isPointInPolygon(point, pg.coordinates)) {
-      return { group: pg.group || '', subGroup: pg.subGroup || '' };
+      return {
+        group: pg.group || '',
+        subGroup: pg.subGroup || '',
+        subGroupValue: pg.subGroupValue || ''
+      };
     }
   }
   return null;
