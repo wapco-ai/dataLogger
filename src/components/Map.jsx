@@ -405,6 +405,75 @@ const Map = () => {
   const { paths, addPath, removePath, updatePath } = usePathStorage();
   const { polygons, addPolygon, removePolygon, updatePolygon } = usePolygonStorage();
 
+  // Load bundled GeoJSON data on first run
+  useEffect(() => {
+    async function loadGeojson() {
+      try {
+        const response = await fetch(`${import.meta.env.BASE_URL}data14040404.geojson`);
+        if (!response.ok) return;
+        const geojson = await response.json();
+        if (geojson.type !== 'FeatureCollection') return;
+
+        const markerKeys = new Set(markers.map(m => `${m.position[0]},${m.position[1]}`));
+        const pathKeys = new Set(paths.map(p => JSON.stringify(p.coordinates)));
+        const polygonKeys = new Set(polygons.map(p => JSON.stringify(p.coordinates)));
+
+        geojson.features.forEach((feature) => {
+          const { geometry, properties = {} } = feature;
+          if (!geometry) return;
+
+          if (geometry.type === 'Point') {
+            const [lng, lat] = geometry.coordinates;
+            const key = `${lat},${lng}`;
+            if (!markerKeys.has(key)) {
+              markerKeys.add(key);
+              addMarker({
+                id: crypto.randomUUID(),
+                position: [lat, lng],
+                data: properties,
+                timestamp: properties.timestamp || new Date().toISOString()
+              });
+            }
+          } else if (geometry.type === 'LineString') {
+            const coords = geometry.coordinates.map(([lng, lat]) => [lat, lng]);
+            const key = JSON.stringify(coords);
+            if (!pathKeys.has(key)) {
+              pathKeys.add(key);
+              addPath({
+                id: crypto.randomUUID(),
+                name: properties.name || '',
+                description: properties.description || '',
+                type: properties.type || '',
+                coordinates: coords,
+                timestamp: properties.timestamp || new Date().toISOString()
+              });
+            }
+          } else if (geometry.type === 'Polygon') {
+            const coords = geometry.coordinates[0].map(([lng, lat]) => [lat, lng]);
+            const key = JSON.stringify(coords);
+            if (!polygonKeys.has(key)) {
+              polygonKeys.add(key);
+              addPolygon({
+                id: crypto.randomUUID(),
+                name: properties.name || '',
+                description: properties.description || '',
+                type: properties.type || '',
+                transportModes: properties.transportModes || [],
+                gender: properties.gender || '',
+                coordinates: coords,
+                timestamp: properties.timestamp || new Date().toISOString()
+              });
+            }
+          }
+        });
+      } catch (err) {
+        console.error('Failed to load initial GeoJSON', err);
+      }
+    }
+
+    loadGeojson();
+  }, [addMarker, addPath, addPolygon]);
+
   // Refs for tracking
   const watchIdRef = useRef(null);
 
