@@ -134,7 +134,7 @@ function SimpleMapLabels({ markers, polygons }) {
       {/* لیبل‌های پولیگون‌ها */}
       {shouldShowLabels && polygons.length > 0 && polygons.map((polygon, index) => {
         try {
-          // console.log('Creating polygon label:', polygon.id, polygon.name);
+          // console.log('Creating polygon label:', polygon.id, polygon.data?.name);
           // محاسبه مرکز پولیگون
           const bounds = L.polygon(polygon.coordinates).getBounds();
           const center = bounds.getCenter();
@@ -162,7 +162,7 @@ function SimpleMapLabels({ markers, polygons }) {
                     min-width: 40px;
                     opacity: 0.8;
                   ">
-                    ${polygon.name || `محدوده ${index + 1}`}
+                    ${polygon.data?.name || `محدوده ${index + 1}`}
                   </div>
                 `,
                 iconSize: [120, 32],
@@ -299,9 +299,9 @@ function getPolygonDefaults(point, polygons) {
   for (const pg of polygons) {
     if (pg.coordinates && isPointInPolygon(point, pg.coordinates)) {
       return {
-        group: pg.group || '',
-        subGroup: pg.subGroup || '',
-        subGroupValue: pg.subGroupValue || ''
+        group: pg.data?.group || '',
+        subGroup: pg.data?.subGroup || '',
+        subGroupValue: pg.data?.subGroupValue || ''
       };
     }
   }
@@ -468,17 +468,18 @@ const Map = () => {
             if (!polygonKeys.has(key)) {
               polygonKeys.add(key);
               addPolygon({
-                id: crypto.randomUUID(),
-                name: properties.name || '',
-                description: properties.description || '',
-                group: properties.group || '',
-                subGroup: properties.subGroup || '',
-                subGroupValue: properties.subGroupValue || '',
-                types: properties.types || (properties.type ? [properties.type] : []),
-                services: properties.transportModes || properties.services || {},
-                gender: properties.gender || '',
-                restrictedTimes: properties.restrictedTimes || [],
                 coordinates: coords,
+                data: {
+                  name: properties.name || '',
+                  description: properties.description || '',
+                  group: properties.group || '',
+                  subGroup: properties.subGroup || '',
+                  subGroupValue: properties.subGroupValue || '',
+                  types: properties.types || (properties.type ? [properties.type] : []),
+                  services: properties.transportModes || properties.services || {},
+                  gender: properties.gender || '',
+                  restrictedTimes: properties.restrictedTimes || []
+                },
                 timestamp: properties.timestamp || new Date().toISOString()
               });
             }
@@ -897,10 +898,10 @@ const Map = () => {
   const filteredPolygons = filterOptions.geometry.polygons ? polygons.filter(pg => {
     const groupMatch =
       filterOptions.groups.length === 0 ||
-      (pg.group && filterOptions.groups.includes(pg.group));
+      (pg.data?.group && filterOptions.groups.includes(pg.data.group));
     const subGroupMatch =
       filterOptions.subGroups.length === 0 ||
-      (pg.subGroup && filterOptions.subGroups.includes(pg.subGroup));
+      (pg.data?.subGroup && filterOptions.subGroups.includes(pg.data.subGroup));
     return groupMatch && subGroupMatch;
   }) : [];
   

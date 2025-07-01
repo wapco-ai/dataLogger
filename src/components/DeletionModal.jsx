@@ -245,13 +245,13 @@ const DeletionModal = ({ selectedItem, onDelete, onClose, onEdit }) => {
 
             {selectedItem.type === 'polygon' && (
                 <div style={{ backgroundColor: '#f5f4e6', padding: '15px', borderRadius: '8px', marginBottom: '15px' }}>
-                    <p><strong>گروه:</strong> {groupLabels[selectedItem.item?.group] || "ثبت نشده"}</p>
-                    <p><strong>نوع محل:</strong> {(selectedItem.item?.types || []).map(t => typeLabels[t] || t).join("، ") || "ثبت نشده"}</p>
-                    <p><strong>امکانات/خدمات:</strong> {renderTransportModes(Object.keys(selectedItem.item?.services || {}).filter(k => selectedItem.item.services[k]))}</p>
-                    <p><strong>جنسیت تردد:</strong> {genderLabels[selectedItem.item?.gender] || "ثبت نشده"}</p>
+                    <p><strong>گروه:</strong> {groupLabels[selectedItem.item.data?.group] || "ثبت نشده"}</p>
+                    <p><strong>نوع محل:</strong> {(selectedItem.item.data?.types || []).map(t => typeLabels[t] || t).join("، ") || "ثبت نشده"}</p>
+                    <p><strong>امکانات/خدمات:</strong> {renderTransportModes(Object.keys(selectedItem.item.data?.services || {}).filter(k => selectedItem.item.data?.services[k]))}</p>
+                    <p><strong>جنسیت تردد:</strong> {genderLabels[selectedItem.item.data?.gender] || "ثبت نشده"}</p>
                     <p><strong>تعداد رئوس محدوده:</strong> {selectedItem.item.coordinates?.length || 0}</p>
                     {/* <p><strong>شناسه یکتا:</strong> {selectedItem.item?.uniqueId || "ثبت نشده"}</p> */}
-                    <p><strong>محدودیت زمانی:</strong> {renderRestrictedTimes(selectedItem.item?.restrictedTimes)}</p>
+                    <p><strong>محدودیت زمانی:</strong> {renderRestrictedTimes(selectedItem.item.data?.restrictedTimes)}</p>
                 </div>
             )}
 
