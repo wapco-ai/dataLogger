@@ -19,54 +19,16 @@ import {
     Tabs,
     Tab
 } from '@mui/material';
+import {
+    groupLabels,
+    nodeFunctionLabels,
+    typeLabels,
+    genderLabels,
+    serviceLabels,
+    prayerEventLabels
+} from './groupData';
 
-// ابتدای فایل DeletionModal.jsx
-const groupLabels = {
-    sahn: "صحن",
-    eyvan: "ایوان",
-    ravaq: "رواق",
-    masjed: "مسجد",
-    madrese: "مدرسه",
-    khadamat: "خدماتی",
-    elmi: "علمی/آموزشی/فرهنگی",
-    cemetery: "آرامستان",
-    other: "سایر"
-};
-const nodeFunctionLabels = {
-    door: "درب",
-    connection: "نقطه اتصال",
-    poi: "نقاط شاخص",
-    elevator: "آسانسور",
-    escalator: "پله برقی",
-    ramp: "رمپ",
-    stairs: "پله",
-    service: "سرویس",
-    other: "سایر"
-};
-const typeLabels = {
-    ziyarati: "زیارتی",
-    tarikhi: "تاریخی",
-    memari: "معماری",
-    farhangi: "فرهنگی",
-    khadamat: "خدماتی"
-};
-const genderLabels = {
-    male: "مردانه",
-    female: "زنانه",
-    family: "خانوادگی"
-};
-const serviceLabels = {
-    wheelchair: "ویلچر",
-    electricVan: "ون برقی",
-    walking: "پیاده‌روی"
-};
-const prayerEventLabels = {
-    azan_fajr: "اذان صبح",
-    sunrise: "طلوع آفتاب",
-    azan_zohr: "اذان ظهر",
-    sunset: "غروب آفتاب",
-    azan_maghreb: "اذان مغرب"
-};
+// داده‌های ثابت از groupData وارد می‌شوند
 
 
 const DeletionModal = ({ selectedItems, onDelete, onClose, onEdit }) => {

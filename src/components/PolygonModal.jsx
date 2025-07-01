@@ -6,26 +6,15 @@ import {
     Box, Typography
 } from '@mui/material';
 import TimeRestrictionsFull from './TimeRestrictions';
-import { groups, subGroups } from './groupData';
+import {
+    groups,
+    subGroups,
+    types,
+    servicesList,
+    genders
+} from './groupData';
 
-// داده‌های پایه (مستقیماً از پروژه یا فایل config جدا ایمپورت کن)
-const types = [
-    { value: 'ziyarati', label: 'زیارتی' },
-    { value: 'tarikhi', label: 'تاریخی' },
-    { value: 'memari', label: 'معماری' },
-    { value: 'farhangi', label: 'فرهنگی' },
-    { value: 'khadamat', label: 'خدماتی' },
-];
-const servicesList = [
-    { value: 'wheelchair', label: 'ویلچر' },
-    { value: 'electricVan', label: 'ون برقی' },
-    { value: 'walking', label: 'پیاده‌روی' }
-];
-const genders = [
-    { value: 'male', label: 'مردانه' },
-    { value: 'female', label: 'زنانه' },
-    { value: 'family', label: 'خانوادگی' }
-];
+// داده‌ها اکنون از groupData تامین می‌شوند
 
 function PolygonModal({ onSave, onClose, polygonCoordinates, initialData, onUpdate }) {
     const isEditMode = Boolean(initialData);

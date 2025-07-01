@@ -6,40 +6,16 @@ import {
   Chip, Box, Typography, Divider
 } from '@mui/material';
 import TimeRestrictionsFull from './TimeRestrictions';
-import { groups, subGroups } from './groupData';
+import {
+  groups,
+  subGroups,
+  types,
+  servicesList,
+  genders,
+  nodeFunctions
+} from './groupData';
 
-// groups, subGroups, types, servicesList, genders — کد را کوتاه‌تر آوردم، مطابق نمونه قبلی قرار بده
-const types = [
-  { value: 'ziyarati', label: 'زیارتی' },
-  { value: 'tarikhi', label: 'تاریخی' },
-  { value: 'memari', label: 'معماری' },
-  { value: 'farhangi', label: 'فرهنگی' },
-  { value: 'khadamat', label: 'خدماتی' },
-];
-const servicesList = [
-  { value: 'wheelchair', label: 'ویلچر' },
-  { value: 'electricVan', label: 'ون برقی' },
-  { value: 'walking', label: 'پیاده‌روی' }
-];
-const genders = [
-  { value: 'male', label: 'مردانه' },
-  { value: 'female', label: 'زنانه' },
-  { value: 'family', label: 'خانوادگی' }
-];
-
-const nodeFunctions = [
-  { value: "door", label: "درب" },
-  { value: "connection", label: "نقطه اتصال" },
-  { value: "poi", label: "نقاط شاخص" }, // اضافه شده
-  { value: "staircase", label: "پله" },
-  { value: "ramp", label: "رمپ" },
-  { value: "elevator", label: "آسانسور" },
-  { value: "escalator", label: "پله برقی" },
-  { value: "ramp", label: "رمپ" },
-  { value: "stairs", label: "پله" },
-  { value: "service", label: "سرویس" },
-  { value: "other", label: "سایر" }
-];
+// داده‌ها از groupData وارد می‌شود
 
 
 function generateUniqueId({ latitude, longitude }, group, subGroupValue) {
