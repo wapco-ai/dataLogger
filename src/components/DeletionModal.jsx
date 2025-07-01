@@ -35,6 +35,7 @@ const groupLabels = {
 const nodeFunctionLabels = {
     door: "درب",
     connection: "نقطه اتصال",
+    poi: "نقاط شاخص",
     elevator: "آسانسور",
     escalator: "پله برقی",
     ramp: "رمپ",

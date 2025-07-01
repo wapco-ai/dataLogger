@@ -30,6 +30,9 @@ const genders = [
 const nodeFunctions = [
   { value: "door", label: "درب" },
   { value: "connection", label: "نقطه اتصال" },
+  { value: "poi", label: "نقاط شاخص" }, // اضافه شده
+  { value: "staircase", label: "پله" },
+  { value: "ramp", label: "رمپ" },
   { value: "elevator", label: "آسانسور" },
   { value: "escalator", label: "پله برقی" },
   { value: "ramp", label: "رمپ" },
