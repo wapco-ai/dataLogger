@@ -312,8 +312,15 @@ function getPolygonDefaults(point, polygons) {
 function isPointInPolygon(point, polygon) {
   try {
     const pt = turfPoint([point.lng, point.lat]);
-    const poly = turfPolygon([polygon.map(([lat, lng]) => [lng, lat])]);
-    const result = pointsWithinPolygon(featureCollection([pt]), poly);
+
+    // Attempt assuming polygon coordinates are [lat, lng]
+    let poly = turfPolygon([polygon.map(([lat, lng]) => [lng, lat])]);
+    let result = pointsWithinPolygon(featureCollection([pt]), poly);
+    if (result.features.length > 0) return true;
+
+    // Fallback for polygons saved as [lng, lat]
+    poly = turfPolygon([polygon]);
+    result = pointsWithinPolygon(featureCollection([pt]), poly);
     return result.features.length > 0;
   } catch (error) {
     console.error('Error in isPointInPolygon:', error);
