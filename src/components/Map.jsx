@@ -307,16 +307,8 @@ function getPolygonDefaults(point, polygons) {
 // Check if a point lies inside a polygon using Turf.js
 function isPointInPolygon(point, polygon) {
   try {
-    const coords = Array.isArray(polygon) ? [...polygon] : [];
-    if (
-      coords.length > 0 &&
-      (coords[0][0] !== coords[coords.length - 1][0] ||
-        coords[0][1] !== coords[coords.length - 1][1])
-    ) {
-      coords.push(coords[0]);
-    }
     const pt = turfPoint([point.lng, point.lat]);
-    const poly = turfPolygon([coords.map(([lat, lng]) => [lng, lat])]);
+    const poly = turfPolygon([polygon.map(([lat, lng]) => [lng, lat])]);
     const result = pointsWithinPolygon(featureCollection([pt]), poly);
     return result.features.length > 0;
   } catch (error) {
@@ -1093,7 +1085,7 @@ const Map = () => {
         {isDrawingPolygon && polygonPoints.length > 1 && (
           <Polygon
             positions={polygonPoints}
-            pathOptions={{ color: 'black', fillOpacity: 0, opacity: 0.5 }}
+            pathOptions={{ color: 'black', fill: true, fillOpacity: 0 , opacity: 0.5}}
           />
         )}
 
@@ -1101,7 +1093,7 @@ const Map = () => {
           <Polygon
             key={polygon.id}
             positions={polygon.coordinates}
-            pathOptions={{ color: 'black', fillOpacity: 0, opacity: 0.5 }}
+            pathOptions={{ color: 'black', fill: true, fillOpacity: 0 , opacity: 0.5}}
             eventHandlers={{
               click: (e) => {
                 if (e.originalEvent && e.originalEvent.stopPropagation) {
