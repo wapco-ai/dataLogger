@@ -39,14 +39,9 @@ const nodeFunctions = [
 ];
 
 
-function generateUniqueId({ latitude, longitude }, group, subGroup, types, gender) {
-  const lat = latitude ? latitude.toFixed(5) : '';
-  const lng = longitude ? longitude.toFixed(5) : '';
+function generateUniqueId({ latitude, longitude }, group, subGroupValue) {
   const rnd = Math.floor(Math.random() * 10000);
-  return [
-    group,
-    rnd
-  ].filter(Boolean).join("_");
+  return [subGroupValue || group, rnd].filter(Boolean).join('_');
 }
 
 function NodeModal({ location, gpsMeta, onClose, onSave, initialData, onUpdate }) {
@@ -59,6 +54,7 @@ function NodeModal({ location, gpsMeta, onClose, onSave, initialData, onUpdate }
         description: d.description || '',
         group: d.group || '',
         subGroup: d.subGroup || '',
+        subGroupValue: d.subGroupValue || '',
         types: d.types || [],
         services: d.services || { wheelchair: false, electricVan: false, walking: false },
         gender: d.gender || '',
@@ -71,6 +67,7 @@ function NodeModal({ location, gpsMeta, onClose, onSave, initialData, onUpdate }
       description: '',
       group: '',
       subGroup: '',
+      subGroupValue: '',
       types: [],
       services: { wheelchair: false, electricVan: false, walking: false },
       gender: '',
@@ -117,7 +114,8 @@ function NodeModal({ location, gpsMeta, onClose, onSave, initialData, onUpdate }
     } else if (onSave) {
       const uniqueId = generateUniqueId(
         { latitude: location.lat, longitude: location.lng },
-        data.group, data.subGroup, data.types, data.gender
+        data.group,
+        data.subGroupValue
       );
       onSave({ ...base, uniqueId });
     }
@@ -204,6 +202,7 @@ function NodeModal({ location, gpsMeta, onClose, onSave, initialData, onUpdate }
               onChange={e => {
                 handleChange('group', e.target.value);
                 handleChange('subGroup', '');
+                handleChange('subGroupValue', '');
                 handleChange('nodeFunction', '');
               }}
               label="گروه اصلی"
@@ -219,14 +218,19 @@ function NodeModal({ location, gpsMeta, onClose, onSave, initialData, onUpdate }
           <FormControl fullWidth margin="dense" sx={{ mb: 1 }} disabled={!data.group}>
             <InputLabel>زیرگروه</InputLabel>
             <Select
-              value={data.subGroup}
-              onChange={e => handleChange('subGroup', e.target.value)}
+              value={data.subGroupValue}
+              onChange={e => {
+                const val = e.target.value;
+                const obj = (subGroups[data.group] || []).find(s => s.value === val);
+                handleChange('subGroup', obj ? obj.label : '');
+                handleChange('subGroupValue', val);
+              }}
               label="زیرگروه"
               size="small"
               sx={{ bgcolor: "#fff", borderRadius: 2 }}
             >
               {(subGroups[data.group] || []).map(sub => (
-                <MenuItem key={sub} value={sub}>{sub}</MenuItem>
+                <MenuItem key={sub.value} value={sub.value}>{sub.label}</MenuItem>
               ))}
             </Select>
           </FormControl>
