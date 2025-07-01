@@ -494,9 +494,13 @@ const importMapData = (file) => {
               id: crypto.randomUUID(),
               name: properties.name || '',
               description: properties.description || '',
-              type: properties.type || '',
-              transportModes: properties.transportModes || [],
+              group: properties.group || '',
+              subGroup: properties.subGroup || '',
+              subGroupValue: properties.subGroupValue || '',
+              types: properties.types || (properties.type ? [properties.type] : []),
+              services: properties.transportModes || properties.services || {},
               gender: properties.gender || '',
+              restrictedTimes: properties.restrictedTimes || [],
               coordinates: coords,
               timestamp: properties.timestamp || new Date().toISOString()
             });
