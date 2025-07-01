@@ -365,7 +365,7 @@ const Map = () => {
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [isTracking, setIsTracking] = useState(false);
   const [showPathModal, setShowPathModal] = useState(false);
-  const [selectedItemForDeletion, setSelectedItemForDeletion] = useState(null);
+  const [selectedItemsForDeletion, setSelectedItemsForDeletion] = useState([]);
   const [markerToEdit, setMarkerToEdit] = useState(null);
   const [pathToEdit, setPathToEdit] = useState(null);
   const [polygonToEdit, setPolygonToEdit] = useState(null);
@@ -685,22 +685,16 @@ const Map = () => {
   };
 
   const handleMarkerClick = (marker) => {
-    setSelectedItemForDeletion({
-      type: 'marker',
-      item: marker
-    });
+    setSelectedItemsForDeletion([{ type: 'marker', item: marker }]);
   };
 
   const handlePathClick = (path) => {
-    setSelectedItemForDeletion({
-      type: 'path',
-      item: path
-    });
+    setSelectedItemsForDeletion([{ type: 'path', item: path }]);
   };
 
-  const handleEditSelected = () => {
-    if (!selectedItemForDeletion) return;
-    const { type, item } = selectedItemForDeletion;
+  const handleEditSelected = (selected) => {
+    if (!selected) return;
+    const { type, item } = selected;
     if (type === 'marker') {
       setMarkerToEdit(item);
     } else if (type === 'path') {
@@ -708,13 +702,13 @@ const Map = () => {
     } else if (type === 'polygon') {
       setPolygonToEdit(item);
     }
-    setSelectedItemForDeletion(null);
+    setSelectedItemsForDeletion([]);
   };
 
   // Delete handler
-  const handleDelete = () => {
-    if (selectedItemForDeletion) {
-      const { type, item } = selectedItemForDeletion;
+  const handleDelete = (selected) => {
+    if (selected) {
+      const { type, item } = selected;
 
       if (type === 'marker') {
         removeMarker(item.id);
@@ -724,7 +718,7 @@ const Map = () => {
         removePolygon(item.id);
       }
 
-      setSelectedItemForDeletion(null);
+      setSelectedItemsForDeletion([]);
     }
   };
 
@@ -791,7 +785,7 @@ const Map = () => {
 
     // If any modal is open, do nothing
     if (
-      selectedItemForDeletion ||
+      selectedItemsForDeletion.length > 0 ||
       showPolygonModal ||
       showPathModal ||
       selectedLocation
@@ -1016,12 +1010,12 @@ const Map = () => {
       )}
 
       {/* Deletion Confirmation Modal */}
-      {selectedItemForDeletion && (
+      {selectedItemsForDeletion.length > 0 && (
         <DeletionModal
-          selectedItem={selectedItemForDeletion}
+          selectedItems={selectedItemsForDeletion}
           onDelete={handleDelete}
           onEdit={handleEditSelected}
-          onClose={() => setSelectedItemForDeletion(null)}
+          onClose={() => setSelectedItemsForDeletion([])}
         />
       )}
 
@@ -1116,10 +1110,12 @@ const Map = () => {
                   e.originalEvent.stopPropagation();
                 }
                 blockNextMapClickRef.current = true;
-                setSelectedItemForDeletion({
-                  type: 'polygon',
-                  item: polygon,
-                });
+                const allPolygons = polygons.filter(pg =>
+                  isPointInPolygon({ lat: e.latlng.lat, lng: e.latlng.lng }, pg.coordinates)
+                );
+                setSelectedItemsForDeletion(
+                  allPolygons.map(pg => ({ type: 'polygon', item: pg }))
+                );
               }
             }}
           />
