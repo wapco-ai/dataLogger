@@ -59,7 +59,7 @@ function NodeModal({ location, gpsMeta, onClose, onSave, initialData, onUpdate }
         services: d.services || { wheelchair: false, electricVan: false, walking: false },
         gender: d.gender || '',
         nodeFunction: d.nodeFunction || '',
-        restrictedTimes: d.restrictedTimes || [],
+        restrictedTimes: Array.isArray(d.restrictedTimes) ? d.restrictedTimes : [],
       };
     }
     return {
