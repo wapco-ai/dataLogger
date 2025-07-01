@@ -49,7 +49,7 @@ export default function FilterModal({ isOpen, onClose, filterOptions, setFilterO
 
   const availableSubGroups = useMemo(() => {
     if (!filterOptions.groups || filterOptions.groups.length === 0) return [];
-    return filterOptions.groups.flatMap(g => subGroups[g] || []);
+    return filterOptions.groups.flatMap(g => (subGroups[g] || []).map(s => s.label));
   }, [filterOptions.groups]);
 
   return (

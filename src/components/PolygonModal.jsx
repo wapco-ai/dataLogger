@@ -36,6 +36,7 @@ function PolygonModal({ onSave, onClose, polygonCoordinates, initialData, onUpda
                 description: initialData.description || '',
                 group: initialData.group || '',
                 subGroup: initialData.subGroup || '',
+                subGroupValue: initialData.subGroupValue || '',
                 types: initialData.types || [],
                 services: initialData.services || {},
                 gender: initialData.gender || '',
@@ -47,6 +48,7 @@ function PolygonModal({ onSave, onClose, polygonCoordinates, initialData, onUpda
             description: '',
             group: '',
             subGroup: '',
+            subGroupValue: '',
             types: [],
             services: {},
             gender: '',
@@ -129,6 +131,7 @@ function PolygonModal({ onSave, onClose, polygonCoordinates, initialData, onUpda
                         onChange={e => {
                             handleChange('group', e.target.value);
                             handleChange('subGroup', '');
+                            handleChange('subGroupValue', '');
                         }}
                         label="گروه"
                         size="small"
@@ -143,14 +146,19 @@ function PolygonModal({ onSave, onClose, polygonCoordinates, initialData, onUpda
                 <FormControl fullWidth margin="dense" sx={{ mb: 1 }} disabled={!data.group}>
                     <InputLabel>زیرگروه</InputLabel>
                     <Select
-                        value={data.subGroup}
-                        onChange={e => handleChange('subGroup', e.target.value)}
+                        value={data.subGroupValue}
+                        onChange={e => {
+                            const val = e.target.value;
+                            const obj = (subGroups[data.group] || []).find(s => s.value === val);
+                            handleChange('subGroup', obj ? obj.label : '');
+                            handleChange('subGroupValue', val);
+                        }}
                         label="زیرگروه"
                         size="small"
                         sx={{ bgcolor: "#fff", borderRadius: 2 }}
                     >
                         {(subGroups[data.group] || []).map(sub => (
-                            <MenuItem key={sub} value={sub}>{sub}</MenuItem>
+                            <MenuItem key={sub.value} value={sub.value}>{sub.label}</MenuItem>
                         ))}
                     </Select>
                 </FormControl>
