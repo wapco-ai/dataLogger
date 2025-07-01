@@ -435,3 +435,53 @@ export const subGroups = {
     }
   ]
 };
+
+export const types = [
+  { value: 'ziyarati', label: 'زیارتی' },
+  { value: 'tarikhi', label: 'تاریخی' },
+  { value: 'memari', label: 'معماری' },
+  { value: 'farhangi', label: 'فرهنگی' },
+  { value: 'khadamat', label: 'خدماتی' },
+];
+
+export const servicesList = [
+  { value: 'wheelchair', label: 'ویلچر' },
+  { value: 'electricVan', label: 'ون برقی' },
+  { value: 'walking', label: 'پیاده‌روی' }
+];
+
+export const genders = [
+  { value: 'male', label: 'مردانه' },
+  { value: 'female', label: 'زنانه' },
+  { value: 'family', label: 'خانوادگی' }
+];
+
+export const nodeFunctions = [
+  { value: 'door', label: 'درب' },
+  { value: 'connection', label: 'نقطه اتصال' },
+  { value: 'poi', label: 'نقاط شاخص' },
+  { value: 'staircase', label: 'پله' },
+  { value: 'ramp', label: 'رمپ' },
+  { value: 'elevator', label: 'آسانسور' },
+  { value: 'escalator', label: 'پله برقی' },
+  { value: 'service', label: 'سرویس' },
+  { value: 'other', label: 'سایر' }
+];
+
+export const prayerEvents = [
+  { value: 'azan_fajr', label: 'اذان صبح' },
+  { value: 'sunrise', label: 'طلوع آفتاب' },
+  { value: 'azan_zohr', label: 'اذان ظهر' },
+  { value: 'sunset', label: 'غروب آفتاب' },
+  { value: 'azan_maghreb', label: 'اذان مغرب' }
+];
+
+export const groupLabels = Object.fromEntries(groups.map(g => [g.value, g.label]));
+export const subGroupLabels = Object.fromEntries(
+  Object.entries(subGroups).flatMap(([key, arr]) => arr.map(s => [s.value, s.label]))
+);
+export const typeLabels = Object.fromEntries(types.map(t => [t.value, t.label]));
+export const serviceLabels = Object.fromEntries(servicesList.map(s => [s.value, s.label]));
+export const genderLabels = Object.fromEntries(genders.map(g => [g.value, g.label]));
+export const nodeFunctionLabels = Object.fromEntries(nodeFunctions.map(n => [n.value, n.label]));
+export const prayerEventLabels = Object.fromEntries(prayerEvents.map(p => [p.value, p.label]));

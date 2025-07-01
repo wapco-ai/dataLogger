@@ -9,23 +9,12 @@ import persian from "react-date-object/calendars/persian";
 import persian_fa from "react-date-object/locales/persian_fa";
 import gregorian from "react-date-object/calendars/gregorian";
 import gregorian_fa from "react-date-object/locales/gregorian_fa";
+import { genders, prayerEvents } from "./groupData";
 
-const prayerEvents = [
-  { value: "azan_fajr", label: "اذان صبح" },
-  { value: "sunrise", label: "طلوع آفتاب" },
-  { value: "azan_zohr", label: "اذان ظهر" },
-  { value: "sunset", label: "غروب آفتاب" },
-  { value: "azan_maghreb", label: "اذان مغرب" }
-];
 const calendars = {
   shamsi: { calendar: persian, locale: persian_fa },
   miladi: { calendar: gregorian, locale: gregorian_fa }
 };
-const genders = [
-  { value: "male", label: "مردانه" },
-  { value: "female", label: "زنانه" },
-  { value: "family", label: "خانوادگی" }
-];
 
 function TimeRestrictionsFull({ value = [], onChange }) {
   const [calendarType, setCalendarType] = useState("shamsi");
