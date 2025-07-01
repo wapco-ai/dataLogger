@@ -41,7 +41,7 @@ function PolygonModal({ onSave, onClose, polygonCoordinates, initialData, onUpda
                 types: d.types || [],
                 services: d.services || {},
                 gender: d.gender || '',
-                restrictedTimes: d.restrictedTimes || [],
+                restrictedTimes: Array.isArray(d.restrictedTimes) ? d.restrictedTimes : [],
             };
         }
         return {
