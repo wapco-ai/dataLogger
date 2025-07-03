@@ -424,7 +424,7 @@ const Map = () => {
   useEffect(() => {
     async function loadGeojson() {
       try {
-        const response = await fetch(`${import.meta.env.BASE_URL}data14040404.geojson`);
+        const response = await fetch(`${import.meta.env.BASE_URL}data14040411.geojson`);
         if (!response.ok) return;
         const geojson = await response.json();
         if (geojson.type !== 'FeatureCollection') return;
