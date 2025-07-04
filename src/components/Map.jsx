@@ -45,6 +45,7 @@ import {
   Box,
   Button
 } from '@mui/material';
+import { Museum } from '@mui/icons-material';
 
 // Center-pin icon for manual marker mode
 const centerIcon = L.divIcon({
@@ -293,6 +294,7 @@ const functionIcons = {
   stairs: '🪜',
   service: '🚾',
   qrcode: '🔳',
+  poi: '⭐',
   other: '📍'
 };
 
