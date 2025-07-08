@@ -2262,39 +2262,6 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          59.61185994815101,
-          36.28792590405897
-        ]
-      },
-      "properties": {
-        "name": "نقطه اتصال",
-        "description": "",
-        "group": "other",
-        "subGroup": "سایر",
-        "subGroupValue": "other",
-        "types": [
-          "ziyarati"
-        ],
-        "services": {
-          "wheelchair": true,
-          "electricVan": false,
-          "walking": true
-        },
-        "gender": "family",
-        "nodeFunction": "connection",
-        "restrictedTimes": [],
-        "latitude": 36.28792590405897,
-        "longitude": 59.61185994815101,
-        "gpsMeta": null,
-        "timestamp": "2025-07-02T08:16:45.091Z",
-        "transportModes": []
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
           59.61580082774164,
           36.28624497548797
         ]
@@ -4468,6 +4435,75 @@
     {
       "type": "Feature",
       "geometry": {
+        "type": "Point",
+        "coordinates": [
+          59.61902551352978,
+          36.286936828181204
+        ]
+      },
+      "properties": {
+        "name": "مقبره پیر پالاندوز",
+        "description": "",
+        "group": "cemetery",
+        "subGroup": "قبر",
+        "subGroupValue": "cemetery",
+        "types": [
+          "ziyarati",
+          "tarikhi",
+          "farhangi"
+        ],
+        "services": {
+          "wheelchair": true,
+          "electricVan": false,
+          "walking": true
+        },
+        "gender": "",
+        "nodeFunction": "poi",
+        "restrictedTimes": [],
+        "latitude": 36.286936828181204,
+        "longitude": 59.61902551352978,
+        "gpsMeta": null,
+        "timestamp": "2025-07-08T18:12:01.717Z",
+        "transportModes": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          59.61579345166683,
+          36.2892134126487
+        ]
+      },
+      "properties": {
+        "name": "کتابخانه مرکزی",
+        "description": "",
+        "group": "other",
+        "subGroup": "سایر",
+        "subGroupValue": "other",
+        "types": [
+          "farhangi",
+          "khadamat"
+        ],
+        "services": {
+          "wheelchair": true,
+          "electricVan": false,
+          "walking": true
+        },
+        "gender": "family",
+        "nodeFunction": "poi",
+        "restrictedTimes": [],
+        "latitude": 36.2892134126487,
+        "longitude": 59.61579345166683,
+        "gpsMeta": null,
+        "timestamp": "2025-07-08T18:11:27.323Z",
+        "transportModes": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
         "type": "Polygon",
         "coordinates": [
           [
@@ -4497,14 +4533,20 @@
       "properties": {
         "name": "ورودی مسقف",
         "description": "",
-        "group": "",
-        "subGroup": "",
-        "subGroupValue": "",
-        "types": [],
-        "services": [],
-        "gender": "",
-        "restrictedTimes": {},
-        "timestamp": "2025-06-12T06:58:50.047Z"
+        "group": "other",
+        "subGroup": "سایر",
+        "subGroupValue": "other",
+        "types": [
+          "khadamat"
+        ],
+        "services": {
+          "wheelchair": true,
+          "electricVan": false,
+          "walking": true
+        },
+        "gender": "family",
+        "restrictedTimes": [],
+        "timestamp": "2025-07-08T16:42:36.479Z"
       }
     },
     {
@@ -4539,14 +4581,19 @@
       "properties": {
         "name": "ورودی مسقف",
         "description": "",
-        "group": "",
-        "subGroup": "",
-        "subGroupValue": "",
-        "types": [],
-        "services": [],
-        "gender": "",
-        "restrictedTimes": {},
-        "timestamp": "2025-06-12T06:58:50.047Z"
+        "group": "other",
+        "subGroup": "سایر",
+        "subGroupValue": "other",
+        "types": [
+          "khadamat"
+        ],
+        "services": {
+          "wheelchair": true,
+          "walking": true
+        },
+        "gender": "family",
+        "restrictedTimes": [],
+        "timestamp": "2025-07-08T16:42:49.598Z"
       }
     },
     {
@@ -4585,14 +4632,19 @@
       "properties": {
         "name": "ورودی مسقف",
         "description": "",
-        "group": "",
-        "subGroup": "",
-        "subGroupValue": "",
-        "types": [],
-        "services": [],
-        "gender": "",
-        "restrictedTimes": {},
-        "timestamp": "2025-06-12T06:58:50.047Z"
+        "group": "other",
+        "subGroup": "سایر",
+        "subGroupValue": "other",
+        "types": [
+          "khadamat"
+        ],
+        "services": {
+          "wheelchair": true,
+          "walking": true
+        },
+        "gender": "family",
+        "restrictedTimes": [],
+        "timestamp": "2025-07-08T16:43:28.671Z"
       }
     },
     {
@@ -4627,14 +4679,19 @@
       "properties": {
         "name": "ورودی مسقف",
         "description": "",
-        "group": "",
-        "subGroup": "",
-        "subGroupValue": "",
-        "types": [],
-        "services": [],
+        "group": "other",
+        "subGroup": "سایر",
+        "subGroupValue": "other",
+        "types": [
+          "khadamat"
+        ],
+        "services": {
+          "wheelchair": true,
+          "walking": true
+        },
         "gender": "",
-        "restrictedTimes": {},
-        "timestamp": "2025-06-12T06:58:50.047Z"
+        "restrictedTimes": [],
+        "timestamp": "2025-07-08T16:43:18.628Z"
       }
     },
     {
@@ -4954,14 +5011,19 @@
       "properties": {
         "name": "ورودی مسقف",
         "description": "",
-        "group": "",
-        "subGroup": "",
-        "subGroupValue": "",
-        "types": [],
-        "services": [],
-        "gender": "",
-        "restrictedTimes": {},
-        "timestamp": "2025-06-12T06:58:50.048Z"
+        "group": "other",
+        "subGroup": "سایر",
+        "subGroupValue": "other",
+        "types": [
+          "khadamat"
+        ],
+        "services": {
+          "wheelchair": true,
+          "walking": true
+        },
+        "gender": "family",
+        "restrictedTimes": [],
+        "timestamp": "2025-07-08T16:48:26.703Z"
       }
     },
     {
@@ -5198,14 +5260,19 @@
       "properties": {
         "name": "ورودی مسقف",
         "description": "",
-        "group": "",
-        "subGroup": "",
-        "subGroupValue": "",
-        "types": [],
-        "services": [],
-        "gender": "",
-        "restrictedTimes": {},
-        "timestamp": "2025-06-12T06:58:50.048Z"
+        "group": "other",
+        "subGroup": "سایر",
+        "subGroupValue": "other",
+        "types": [
+          "khadamat"
+        ],
+        "services": {
+          "wheelchair": true,
+          "walking": true
+        },
+        "gender": "family",
+        "restrictedTimes": [],
+        "timestamp": "2025-07-08T16:48:40.075Z"
       }
     },
     {
@@ -5297,8 +5364,8 @@
         "name": "موزه",
         "description": "",
         "group": "elmi",
-        "subGroup": "موزه مرکزی",
-        "subGroupValue": "",
+        "subGroup": "سایر",
+        "subGroupValue": "elmi-other",
         "types": [
           "farhangi"
         ],
@@ -5308,7 +5375,7 @@
         },
         "gender": "family",
         "restrictedTimes": [],
-        "timestamp": "2025-06-12T07:37:18.342Z"
+        "timestamp": "2025-07-08T16:44:12.696Z"
       }
     },
     {
@@ -5347,14 +5414,20 @@
       "properties": {
         "name": "صحن بعثت",
         "description": "",
-        "group": "",
-        "subGroup": "",
-        "subGroupValue": "",
-        "types": [],
-        "services": [],
-        "gender": "",
-        "restrictedTimes": {},
-        "timestamp": "2025-06-12T06:58:50.048Z"
+        "group": "sahn",
+        "subGroup": "سایر",
+        "subGroupValue": "sahn-other",
+        "types": [
+          "ziyarati",
+          "farhangi"
+        ],
+        "services": {
+          "wheelchair": true,
+          "walking": true
+        },
+        "gender": "family",
+        "restrictedTimes": [],
+        "timestamp": "2025-07-08T15:46:24.850Z"
       }
     },
     {
@@ -5748,9 +5821,9 @@
           "electricVan": false,
           "wheelchair": true
         },
-        "gender": "",
+        "gender": "family",
         "restrictedTimes": [],
-        "timestamp": "2025-06-12T07:14:39.867Z"
+        "timestamp": "2025-07-08T16:49:05.548Z"
       }
     },
     {
@@ -5864,14 +5937,21 @@
       "properties": {
         "name": "ورودی مسقف",
         "description": "",
-        "group": "",
-        "subGroup": "",
-        "subGroupValue": "",
-        "types": [],
-        "services": [],
+        "group": "other",
+        "subGroup": "سایر",
+        "subGroupValue": "other",
+        "types": [
+          "ziyarati",
+          "tarikhi",
+          "farhangi"
+        ],
+        "services": {
+          "wheelchair": true,
+          "walking": true
+        },
         "gender": "",
-        "restrictedTimes": {},
-        "timestamp": "2025-06-12T06:58:50.048Z"
+        "restrictedTimes": [],
+        "timestamp": "2025-07-08T16:02:19.065Z"
       }
     },
     {
@@ -6385,14 +6465,21 @@
       "properties": {
         "name": "روضه منوره",
         "description": "",
-        "group": "",
-        "subGroup": "",
-        "subGroupValue": "",
-        "types": [],
-        "services": [],
-        "gender": "",
-        "restrictedTimes": {},
-        "timestamp": "2025-06-12T06:58:50.049Z"
+        "group": "masjed",
+        "subGroup": "سایر",
+        "subGroupValue": "masjed-other",
+        "types": [
+          "ziyarati",
+          "tarikhi",
+          "farhangi"
+        ],
+        "services": {
+          "wheelchair": true,
+          "walking": true
+        },
+        "gender": "family",
+        "restrictedTimes": [],
+        "timestamp": "2025-07-08T16:03:39.264Z"
       }
     },
     {
@@ -6593,9 +6680,9 @@
       "properties": {
         "name": " رواق",
         "description": "",
-        "group": "other",
+        "group": "ravaq",
         "subGroup": "سایر",
-        "subGroupValue": "other",
+        "subGroupValue": "ravaq-other",
         "types": [
           "ziyarati"
         ],
@@ -6605,7 +6692,7 @@
         },
         "gender": "family",
         "restrictedTimes": [],
-        "timestamp": "2025-06-12T07:40:41.509Z"
+        "timestamp": "2025-07-08T16:04:03.192Z"
       }
     },
     {
@@ -7666,9 +7753,9 @@
           "wheelchair": true,
           "walking": true
         },
-        "gender": "",
+        "gender": "family",
         "restrictedTimes": [],
-        "timestamp": "2025-06-12T07:21:22.165Z"
+        "timestamp": "2025-07-08T16:04:21.315Z"
       }
     },
     {
@@ -7814,7 +7901,7 @@
         },
         "gender": "family",
         "restrictedTimes": [],
-        "timestamp": "2025-06-12T07:44:36.482Z"
+        "timestamp": "2025-07-08T16:04:38.366Z"
       }
     },
     {
@@ -7889,14 +7976,19 @@
       "properties": {
         "name": "ورودی مسقف",
         "description": "",
-        "group": "",
-        "subGroup": "",
-        "subGroupValue": "",
-        "types": [],
-        "services": [],
-        "gender": "",
-        "restrictedTimes": {},
-        "timestamp": "2025-06-12T06:58:50.050Z"
+        "group": "other",
+        "subGroup": "سایر",
+        "subGroupValue": "other",
+        "types": [
+          "khadamat"
+        ],
+        "services": {
+          "wheelchair": true,
+          "walking": true
+        },
+        "gender": "family",
+        "restrictedTimes": [],
+        "timestamp": "2025-07-08T16:47:19.760Z"
       }
     },
     {
@@ -8307,14 +8399,19 @@
       "properties": {
         "name": "حرم مطهر",
         "description": "",
-        "group": "",
-        "subGroup": "",
-        "subGroupValue": "",
-        "types": [],
-        "services": [],
-        "gender": "",
-        "restrictedTimes": {},
-        "timestamp": "2025-06-12T06:58:50.050Z"
+        "group": "other",
+        "subGroup": "سایر",
+        "subGroupValue": "other",
+        "types": [
+          "ziyarati"
+        ],
+        "services": {
+          "wheelchair": true,
+          "walking": true
+        },
+        "gender": "family",
+        "restrictedTimes": [],
+        "timestamp": "2025-07-08T16:03:09.428Z"
       }
     },
     {
@@ -9197,8 +9294,8 @@
         "name": "بست شیخ طوسی",
         "description": "",
         "group": "ravaq",
-        "subGroup": "شیخ طوسی",
-        "subGroupValue": "",
+        "subGroup": "سایر",
+        "subGroupValue": "ravaq-other",
         "types": [
           "ziyarati"
         ],
@@ -9208,7 +9305,7 @@
         },
         "gender": "family",
         "restrictedTimes": [],
-        "timestamp": "2025-06-12T08:32:46.594Z"
+        "timestamp": "2025-07-08T16:04:31.450Z"
       }
     },
     {
