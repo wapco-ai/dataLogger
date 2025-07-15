@@ -196,7 +196,7 @@ const DeletionModal = ({ selectedItems, onDelete, onClose, onEdit }) => {
                         selectedItem.item.position && selectedItem.item.position.length === 2 && (
                         <div style={{ textAlign: 'center', marginTop: 10 }}>
                             <QRCode
-                                value={`https://wapco-ai.github.io/golden_path/?lat=${selectedItem.item.position[0]}&lng=${selectedItem.item.position[1]}`}
+                                value={`https://wapco-ai.github.io/golden_path/?lat=${selectedItem.item.position[0]}&lng=${selectedItem.item.position[1]}&id=${selectedItem.item.data?.uniqueId}`}
                                 size={128}
                             />
                         </div>
